@@ -89,56 +89,56 @@ BOOL isTouchIDAvailable() {
 	dismissedApp = bundleID;
 	NSLog(@"%@", dispName);
 	if (isTouchIDAvailable()) {
-		LAContext *context = [[LAContext alloc] init];
-		context.localizedFallbackTitle = @"";
+			LAContext *context = [[LAContext alloc] init];
 
-		NSError *error = nil;
-		if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
-		    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:@"" reply:^(BOOL success, NSError *error) {
-            	dispatch_async(dispatch_get_main_queue(), ^{
-			      	if (error) {
-			      		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
-						NSString *title = @"ShieldXI";
-						NSString *message = [NSString stringWithFormat:@"There was a problem verifying your identity."];
-						
-						UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
-					    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
-					    	// Extra Stuff?
-					   	}];
+			NSError *error = nil;
+			if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
+			    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:@"Are you the device owner?" reply:^(BOOL success, NSError *error) {
+		            	dispatch_async(dispatch_get_main_queue(), ^{
+					      	if (error) {
+					      		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+								NSString *title = @"ShieldXI";
+								NSString *message = [NSString stringWithFormat:@"There was a problem verifying your identity."];
+								
+								UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+							    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+							    	// Extra Stuff?
+							   	}];
 
-					    [alert addAction:okButton];
+							    [alert addAction:okButton];
 
-						[controller presentViewController:alert animated:YES completion:nil];   
-			        }
+								[controller presentViewController:alert animated:YES completion:nil];   
+					        }
 
-			  		if (success) {
-			  			%orig();
-					} else {
-			    		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
-						NSString *title = @"ShieldXI";
-						NSString *message = [NSString stringWithFormat:@"You are not the device owner"];
-						
-						UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
-					    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
-					    	// Extra Stuff?
-					   	}];
-					    [alert addAction:okButton];
+					  		if (success) {
+					  			%orig();
+							} else {
+					    		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+								NSString *title = @"ShieldXI";
+								NSString *message = [NSString stringWithFormat:@"You are not the device owner"];
+								
+								UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+							    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+							    	// Extra Stuff?
+							   	}];
+							    [alert addAction:okButton];
 
-						[controller presentViewController:alert animated:YES completion:nil];   
-					}
-				});
-			}];
-		   } else {
-		    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
-			NSString *title = @"ShieldXI";
-			NSString *message = [NSString stringWithFormat:@"Your device cannot authenticate using TouchID."];
-			UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
-		    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
-		    	// Extra Stuff?
-		   	}];
-		    [alert addAction:okButton];
-			[controller presentViewController:alert animated:YES completion:nil];   
-		}
+								[controller presentViewController:alert animated:YES completion:nil];   
+							}
+						});
+					}];
+
+			   } else {
+			    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+				NSString *title = @"ShieldXI";
+				NSString *message = [NSString stringWithFormat:@"Your device cannot authenticate using TouchID."];
+				UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+			    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+			    	// Extra Stuff?
+			   	}];
+			    [alert addAction:okButton];
+				[controller presentViewController:alert animated:YES completion:nil];   
+			}
 	} else {
 			NSString *title = @"ShieldXI";
 			NSString *message = [NSString stringWithFormat:@"Sorry, but Touch ID nor FaceID are available on your device. DM us on @useignition as we would like to know how you got this running on your device!"];
