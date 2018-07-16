@@ -4,8 +4,6 @@
 #import <UIKit/UIKit.h>
 
 #include <dlfcn.h>
-
-#import <UIKit/UIKit.h>
 #import <SpringBoard/SpringBoard.h>
 #import<SpringBoard/SBApplicationController.h>
 #import <objc/runtime.h>
