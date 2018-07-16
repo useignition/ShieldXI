@@ -5,6 +5,7 @@ TWEAK_NAME = ShieldXI
 ShieldXI_FILES = Tweak.xm
 ShieldXI_FRAMEWORKS = UIKit CoreGraphics QuartzCore LocalAuthentication
 ShieldXI_PRIVATE_FRAMEWORKS = SpringBoardServices SpringBoardUIServices AudioToolBox AppSupport BiometricKit
+ShieldXI_LIBRARIES = sparkapplist
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 

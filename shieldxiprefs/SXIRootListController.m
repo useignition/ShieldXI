@@ -1,4 +1,6 @@
 #include "SXIRootListController.h"
+#import "SparkAppListTableViewController.h"
+#import "SparkAppList.h"
 #include <unistd.h>
 #include <spawn.h>
 #include <sys/wait.h>
@@ -13,8 +15,6 @@
 #import <notify.h>
 #import <QuartzCore/CALayer.h>
 #import <QuartzCore/QuartzCore.h>
-#import <UIKit/UIKit.h>
-
 #import <UIKit/UIKit.h>
 #import <SpringBoard/SpringBoard.h>
 #import<SpringBoard/SBApplicationController.h>
@@ -144,6 +144,14 @@ int osVersion(){
 // 	return _specifiers;
 // }
 
+-(void)selectLockedApps {
+
+    SparkAppListTableViewController* s = [[SparkAppListTableViewController alloc] initWithIdentifier:@"fun.ignition.shieldxi" andKey:@"lockedApps"];
+
+    [self.navigationController pushViewController:s animated:YES];
+    self.navigationItem.hidesBackButton = FALSE;
+}
+
 -(void)openTwitter {
 	NSString *user = @"useignition";
 	if([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:@"tweetbot:"]]) {
@@ -157,6 +165,14 @@ int osVersion(){
 	} else {
 		[[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"https://mobile.twitter.com/" stringByAppendingString:user]]];
 	}
+}
+
+-(void)visitIgnitionFun {
+	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://ignition.fun"]];
+}
+
+-(void)openSourceCode {
+	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/useignition/ShieldXI"]];
 }
 
 - (id)initForContentSize:(CGSize)size {
@@ -215,8 +231,26 @@ int osVersion(){
     return UIStatusBarStyleLightContent;
 }
 
+- (void)viewWillAppear {
+	[[UINavigationBar appearance] setTintColor:[UIColor whiteColor]]; // this will change the back button tint
+	[[UINavigationBar appearance] setBarTintColor:[UIColor colorWithRed:0.45 green:0.42 blue:0.93 alpha:1.0]];
+}
+
+- (void)viewDidAppear {
+	[[UINavigationBar appearance] setTintColor:[UIColor whiteColor]]; // this will change the back button tint
+	[[UINavigationBar appearance] setBarTintColor:[UIColor colorWithRed:0.45 green:0.42 blue:0.93 alpha:1.0]];
+}
+
 - (void)viewDidLoad {
 	[super viewDidLoad];
+	[[UINavigationBar appearance] setTintColor:[UIColor whiteColor]]; // this will change the back button tint
+	[[UINavigationBar appearance] setBarTintColor:[UIColor colorWithRed:0.45 green:0.42 blue:0.93 alpha:1.0]];
+	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+	
+	[[SparkAppList alloc] getAppList: ^(NSArray *result) {
+        [defaults setValue:[NSString stringWithFormat:@"%lu", (long)[result count]] forKey:@"lockedAppsCount"];
+        [defaults synchronize];
+    }];
 	NSDictionary *titleAttributes = @{NSForegroundColorAttributeName: [UIColor whiteColor]};
 	self.navigationController.navigationBar.barStyle = UIBarStyleBlack;
 	self.navigationController.navigationBar.translucent = YES;
@@ -343,14 +377,42 @@ int osVersion(){
 		// 	[self addSubview:logoView];
 		// }
 		
-		UILabel *randomLabel = [[UILabel alloc] initWithFrame:self.contentView.frame];
-		randomLabel.text = @"Thanks for choosing ShieldXI by Ignition";
-		randomLabel.font = [UIFont systemFontOfSize:10];
-		randomLabel.textColor = UIColor.whiteColor;
+		// UILabel *randomLabel = [[UILabel alloc] initWithFrame:self.contentView.frame];
+		// randomLabel.text = @"Thanks for choosing ShieldXI by Ignition";
+		// randomLabel.font = [UIFont systemFontOfSize:10];
+		// randomLabel.textColor = UIColor.whiteColor;
+		int width = self.contentView.bounds.size.width;
+		int height = self.contentView.bounds.size.height;
+
+		CGRect frame = CGRectMake(0, 45, width, height);
+		CGRect subtitleFrame = CGRectMake(0, 75, width, height);
+
+		UILabel *tweakTitle = [[UILabel alloc] initWithFrame:frame];
+		[tweakTitle setNumberOfLines:1];
+		[tweakTitle setFont:[UIFont fontWithName:@"HelveticaNeue-UltraLight" size:48]];
+		[tweakTitle setText:@"ShieldXI"];
+		[tweakTitle setBackgroundColor:[UIColor clearColor]];
+		[tweakTitle setTextColor:[UIColor colorWithRed:255 green:255 blue:255 alpha:1]];
+		[tweakTitle setTextAlignment:NSTextAlignmentCenter];
+		tweakTitle.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+		tweakTitle.contentMode = UIViewContentModeScaleToFill;
+
+		UILabel *tweakSubtitle = [[UILabel alloc] initWithFrame:subtitleFrame];
+		[tweakSubtitle setNumberOfLines:1];
+		[tweakSubtitle setFont:[UIFont fontWithName:@"HelveticaNeue-Regular" size:18]];
+		[tweakSubtitle setText:@"By Ignition Development"];
+		[tweakSubtitle setBackgroundColor:[UIColor clearColor]];
+		[tweakSubtitle setTextColor:[UIColor colorWithRed:255 green:255 blue:255 alpha:1]];
+		[tweakSubtitle setTextAlignment:NSTextAlignmentCenter];
+		tweakSubtitle.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+		tweakSubtitle.contentMode = UIViewContentModeScaleToFill;
+
+		[self addSubview:tweakTitle];
+		[self addSubview:tweakSubtitle];
 	}
 	return self;
 }
 - (CGFloat)preferredHeightForWidth:(CGFloat)arg1 {
-	return 100.0f;
+	return 150.0f;
 }
 @end

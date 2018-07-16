@@ -8,6 +8,7 @@
 #import <objc/runtime.h>
 #import <AudioToolbox/AudioServices.h>
 #import <LocalAuthentication/LocalAuthentication.h>
+#import "SparkAppList.h"
 
 #define kSettingsPath	[NSHomeDirectory() stringByAppendingPathComponent:@"/Library/Preferences/fun.ignition.shieldxi.plist"]
 
@@ -113,14 +114,14 @@ BOOL isTouchIDAvailable() {
 		SBApplication* app = arg1;
 		NSString *bundleID = [app bundleIdentifier];
 		NSString *dispName = [app displayName];
-
-		UIViewController * controller = [[UIApplication sharedApplication] keyWindow].rootViewController;
-		while (controller.presentedViewController) {
-		    controller = controller.presentedViewController;
-		}
-		dismissedApp = bundleID;
-		NSLog(@"%@", dispName);
-		if (isTouchIDAvailable()) {
+		if([SparkAppList doesIdentifier:@"fun.ignition.shieldxi" andKey:@"lockedApps" containBundleIdentifier:bundleID]) {
+			UIViewController * controller = [[UIApplication sharedApplication] keyWindow].rootViewController;
+			while (controller.presentedViewController) {
+			    controller = controller.presentedViewController;
+			}
+			dismissedApp = bundleID;
+			NSLog(@"%@", dispName);
+			if (isTouchIDAvailable()) {
 				LAContext *context = [[LAContext alloc] init];
 				context.localizedFallbackTitle = @"";
 
@@ -172,15 +173,18 @@ BOOL isTouchIDAvailable() {
 				    [alert addAction:okButton];
 					[controller presentViewController:alert animated:YES completion:nil];   
 				}
+			} else {
+					NSString *title = @"ShieldXI";
+					NSString *message = [NSString stringWithFormat:@"Sorry, but Touch ID nor FaceID are available on your device. DM us on @useignition as we would like to know how you got this running on your device!"];
+					UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+					UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+				        %orig;
+					}];
+				    [alert addAction:okButton];
+					[controller presentViewController:alert animated:YES completion:nil];   
+			}
 		} else {
-				NSString *title = @"ShieldXI";
-				NSString *message = [NSString stringWithFormat:@"Sorry, but Touch ID nor FaceID are available on your device. DM us on @useignition as we would like to know how you got this running on your device!"];
-				UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
-				UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
-			        %orig;
-				}];
-			    [alert addAction:okButton];
-				[controller presentViewController:alert animated:YES completion:nil];   
+			%orig();
 		}
 	} else {
 		%orig();

@@ -5,7 +5,7 @@ ShieldXIPrefs_FILES = SXIRootListController.m
 ShieldXIPrefs_INSTALL_PATH = /Library/PreferenceBundles
 ShieldXIPrefs_FRAMEWORKS = UIKit LocalAuthentication
 ShieldXIPrefs_PRIVATE_FRAMEWORKS = Preferences CoreGraphics ManagedConfiguration AudioToolBox BiometricKit
-ShieldXIPrefs_LIBRARIES = applist
+ShieldXIPrefs_LIBRARIES = sparkapplist
 
 include $(THEOS_MAKE_PATH)/bundle.mk
 
