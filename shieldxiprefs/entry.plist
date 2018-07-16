@@ -1,0 +1,10 @@
+{
+    entry = {
+	bundle = ShieldXIPrefs;
+	cell = PSLinkCell;
+	detail = ShieldXIListController;
+	icon = ShieldXI.png;
+	isController = 1;
+	label = ShieldXI;
+    };   
+}
