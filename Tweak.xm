@@ -90,6 +90,7 @@ BOOL isTouchIDAvailable() {
 	NSLog(@"%@", dispName);
 	if (isTouchIDAvailable()) {
 			LAContext *context = [[LAContext alloc] init];
+			context.localizedFallbackTitle = @"";
 
 			NSError *error = nil;
 			if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
