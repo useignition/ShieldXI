@@ -1,5 +1,5 @@
 # ShieldXI
-Free and Open Source BioProtect X alternative.
+Free and Open Source BioProtect X alternative with Guest Mode and Intruder Photo.
 
 Requires libSparkAppList.
 
