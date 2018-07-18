@@ -84,6 +84,22 @@
 			<string>setEnabledSwitch:specifier:</string>
 		</dict>
 		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>fun.ignition.shieldxi</string>
+			<key>PostNotification</key>
+			<string>fun.ignition.shieldxi/settingschanged</string>
+			<key>key</key>
+			<string>folders</string>
+			<key>label</key>
+			<string>Folders</string>
+			<key>set</key>
+			<string>setFoldersSwitch:specifier:</string>
+		</dict>
+		<dict>
 	        <key>cell</key>
 	        <string>PSLinkListCell</string>
 	        <key>label</key>
@@ -99,7 +115,7 @@
 	    	<key>Title</key>
 	    	<string>Intruder Photo</string>
 	    	<key>footerText</key>
-	    	<string>Intruder Photo will silently take a photo the person is trying to get into your apps.</string>
+	    	<string>Intruder Photo will silently take a photo the person is trying to get into your apps. Stored in /var/mobile/ShieldXI</string>
 	    </dict>
 	    <dict>
 	    	<key>cell</key>
@@ -117,7 +133,7 @@
 	    	<key>set</key>
 	    	<string>setIntruderSwitch:specifier:</string>
 	    </dict>
-	    <dict>
+	    <!-- <dict>
 	        <key>cell</key>
 	        <string>PSLinkListCell</string>
 	        <key>label</key>
@@ -126,8 +142,8 @@
 	        <string>0 photos</string>
 	        <key>action</key>
 	        <string>viewIntruders</string>
-	    </dict>
-	    <dict>
+	    </dict> -->
+	    <!-- <dict>
 	    	<key>cell</key>
 	    	<string>PSGroupCell</string>
 	    	<key>Title</key>
@@ -181,22 +197,28 @@
 	    	<key>PostNotification</key>
 	    	<string>fun.ignition.shieldxi/settingschanged</string>
 	    	<key>key</key>
-	    	<string>customMessage</string>
+	    	<string>hasCustomMessage</string>
 	    	<key>label</key>
 	    	<string>Access Message</string>
 	    	<key>subtitle</key>
 	    	<string>Set a custom access message on the Touch ID/Face ID popup.</string>
 	    	<key>set</key>
-	    	<string>setEnabledSwitch:specifier:</string>
+	    	<string>setCustomMessageSwitch:specifier:</string>
 	    </dict>
     	<dict>
+    		<key>defaults</key>
+    		<string>fun.ignition.shieldxi</string>
+    		<key>PostNotification</key>
+    		<string>fun.ignition.shieldxi/settingschanged</string>
+    		<key>key</key>
+    		<string>customMessage</string>
 			<key>action</key>
 			<string>setCustomMessage:</string>
 			<key>cell</key>
 			<string>PSButtonCell</string>
 			<key>label</key>
 			<string>Set Message</string>
-		</dict>
+		</dict> -->
 	    <dict>
 	    	<key>cell</key>
 	    	<string>PSGroupCell</string>
@@ -239,22 +261,22 @@
 			<key>subtitle</key>
 			<string>Source Code</string>
 		</dict>
-		<!-- <dict>
+		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
-		</dict> -->
-		<!-- <dict>
+		</dict>
+		<dict>
 			<key>cellClass</key>
 			<string>HBPackageTableCell</string>
 			<key>label</key>
-			<string>SafeModeSublime</string>
+			<string>ShieldXI</string>
 			<key>packageIdentifier</key>
-			<string>fun.ignition.safemodesublime</string>
-			<key>packageRepository</key>
-			<string>https://ignition.fun/repo/</string>
+			<string>fun.ignition.shieldxi</string>
+			<!-- <key>packageRepository</key> -->
+			<!-- <string>https://ignition.fun/repo/</string> -->
 			<key>subtitleText</key>
-			<string>Beautify the Electra Safe Mode</string>
-		</dict> -->
+			<string>Only download this package from BigBoss and Ignition Repositories.</string>
+		</dict>
 		<!-- <dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>

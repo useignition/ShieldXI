@@ -28,8 +28,18 @@
 #import <CepheiPrefs/HBAppearanceSettings.h>
 #import <Cephei/HBPreferences.h>
 
+@interface _UIBackdropView : UIView
+- (id)initWithFrame:(CGRect)arg1 autosizesToFitSuperview:(BOOL)arg2 settings:(id)arg3;
+- (void)setBlurQuality:(id)arg1;
+@end
+
+@interface _UIBackdropViewSettings : NSObject
++ (id)settingsForPrivateStyle:(int)arg1;
+@end
+
 @interface ShieldXIListController : PSListController
 // - (void)applicationEnteredForeground:(id)something;
+@property (nonatomic, strong, retain) _UIBackdropView *blurView;
 - (void)setEnabledSwitch:(id)value specifier:(PSSpecifier *)specifier;
 - (void)setDarkModeSwitch:(id)value specifier:(PSSpecifier *)specifier;
 - (void)setIntruderSwitch:(id)value specifier:(PSSpecifier *)specifier;
@@ -40,7 +50,6 @@
 
 @interface PSListController (ShieldXI)
 -(id)initForContentSize:(CGSize)arg1;
-//IOS 8 EXCLUSIVE
 -(void)popRecursivelyToRootController;
 @end
 @interface PSTableCell (ShieldXI)
@@ -212,6 +221,35 @@ void loadPreferences() {
 	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/useignition/ShieldXI"]];
 }
 
+- (void)setCustomMessage:(PSSpecifier *)specifier {
+	UIAlertController *customMessageAlert = [UIAlertController alertControllerWithTitle:@"Access Message" message:@"Choose your new access message." preferredStyle:UIAlertControllerStyleAlert];
+	[customMessageAlert addTextFieldWithConfigurationHandler:^(UITextField *textField) {
+		textField.placeholder = @"";
+	}];
+
+	UIAlertAction *saveMessage = [UIAlertAction actionWithTitle:@"Save" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+	    UITextField *message = customMessageAlert.textFields.firstObject;
+	    if (![message.text isEqualToString:@""]) {
+
+	    } else {
+	    	NSLog(@"setting: %@ for key: %@", message.text, [specifier propertyForKey:@"key"]);
+	    	
+	    	[self setPreferenceValue:message.text specifier:specifier];
+	    	[[NSUserDefaults standardUserDefaults] synchronize];
+	    	
+	    	// indicate that a Respring is required
+	    	self.respringButton.title = @"Respring";
+	    }
+	}];
+
+	UIAlertAction *cancelChange = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil];
+
+	[customMessageAlert addAction:saveMessage];
+	[customMessageAlert addAction:cancelChange];
+
+	[controller presentViewController:customMessageAlert animated:YES completion:nil];
+}
+
 - (id)initForContentSize:(CGSize)size {
 	NSLog(@"[ShieldXI] settings init'd.");
 	self = [super initForContentSize:size];
@@ -221,7 +259,7 @@ void loadPreferences() {
 		NSLog(@"[ShieldXI] IF self is %@", self);
 
 		controller = self;
-		_respringButton = [[UIBarButtonItem alloc] initWithTitle:@"" style:UIBarButtonItemStylePlain target:self action:@selector(respring)];
+		_respringButton = [[UIBarButtonItem alloc] initWithTitle:@"Respring" style:UIBarButtonItemStylePlain target:self action:@selector(respring)];
 		
 		[self.navigationItem setRightBarButtonItem:_respringButton];
 	}
@@ -301,18 +339,8 @@ void loadPreferences() {
         [defaults synchronize];
     }];
 	NSDictionary *titleAttributes = @{NSForegroundColorAttributeName: [UIColor whiteColor]};
-	// self.navigationController.navigationBar.barStyle = UIBarStyleBlack;
-	// self.navigationController.navigationBar.translucent = YES;
-	// self.navigationController.navigationBar.barTintColor = [UIColor colorWithRed:0.45 green:0.42 blue:0.93 alpha:1.0];
-	// self.tool.barTintColor = [UIColor colorWithRed:0.45 green:0.42 blue:0.93 alpha:1.0];
-	// self.toolbar.barStyle = UIBarStyleBlack;
 	[self.navigationController.navigationController.navigationBar setShadowImage: [UIImage new]];
 	[self.navigationController.navigationBar setTitleTextAttributes:titleAttributes];
-
-	// if (@available(iOS 11.0, *)) {
-	//     [self.navigationController.navigationBar setLargeTitleTextAttributes:titleAttributes];
-	// }
-
 	[self.navigationController.navigationBar setBarStyle:UIBarStyleBlack];
 
 	[self setNeedsStatusBarAppearanceUpdate];
@@ -324,6 +352,40 @@ void loadPreferences() {
 	
 	[self setPreferenceValue:value specifier:specifier];
 	[[NSUserDefaults standardUserDefaults] synchronize];
+	
+	// indicate that a Respring is required
+	self.respringButton.title = @"Respring";
+}
+
+- (void)setFoldersSwitch:(id)value specifier:(PSSpecifier *)specifier {
+	NSLog(@"setting: %@ for key: %@", value, [specifier propertyForKey:@"key"]);
+	
+	[self setPreferenceValue:value specifier:specifier];
+	[[NSUserDefaults standardUserDefaults] synchronize];
+	
+	// indicate that a Respring is required
+	self.respringButton.title = @"Respring";
+}
+
+- (void)setCustomMessageSwitch:(id)value specifier:(PSSpecifier *)specifier {
+	NSLog(@"setting: %@ for key: %@", value, [specifier propertyForKey:@"key"]);
+	
+	[self setPreferenceValue:value specifier:specifier];
+	[[NSUserDefaults standardUserDefaults] synchronize];
+
+	if (value && [value boolValue]) {
+		NSString *title = @"ShieldXI";
+		NSString *message = [NSString stringWithFormat:@"You must now set your custom message using the button below."];
+		
+		UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+	    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+	    	// Extra Stuff?
+	   	}];
+
+	    [alert addAction:okButton];
+
+		[controller presentViewController:alert animated:YES completion:nil];
+	}
 	
 	// indicate that a Respring is required
 	self.respringButton.title = @"Respring";
@@ -352,73 +414,106 @@ void loadPreferences() {
 
 - (void)askForLogin {
 	if (isTouchIDAvailable()) {
-			LAContext *context = [[LAContext alloc] init];
-			context.localizedFallbackTitle = @"Greasy Fingers? Enter Password.";
+		if (!self.blurView) {
+			self.blurView = [[_UIBackdropView alloc]	initWithFrame:CGRectZero
+										   autosizesToFitSuperview:YES
+														  settings:[_UIBackdropViewSettings settingsForPrivateStyle:3900]];
+			
+			[self.blurView setBlurQuality:@"low"];
+			self.blurView.alpha = 0;
+			
+			[[[UIApplication sharedApplication] keyWindow] addSubview:self.blurView];
+		}
+		[UIView animateWithDuration:0.4 animations:^{
+			self.blurView.alpha = 1.0;
+		}];
+		LAContext *context = [[LAContext alloc] init];
+		context.localizedFallbackTitle = @"Greasy Fingers?\nEnter Password.";
 
-			NSError *error = nil;
-			if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
-			    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:@"Are you the device owner?" reply:^(BOOL success, NSError *error) {
-		            	dispatch_async(dispatch_get_main_queue(), ^{
-					      	if (error) {
-					      		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
-								NSString *title = @"ShieldXI";
-								NSString *message = [NSString stringWithFormat:@"There was a problem verifying your identity."];
-								
-								UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
-							    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
-							    	// Extra Stuff?
-							    	[self.rootController popRecursivelyToRootController];
-							   	}];
+		NSError *error = nil;
+		if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
+		    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:@"Are you the device owner?" reply:^(BOOL success, NSError *error) {
+	            	dispatch_async(dispatch_get_main_queue(), ^{
+				      	if (error) {
+				      		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+							NSString *title = @"ShieldXI";
+							NSString *message = [NSString stringWithFormat:@"There was a problem verifying your identity."];
+							
+							UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+						    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+						    	// Extra Stuff?
+						    	[self.rootController popRecursivelyToRootController];
+						    	[UIView animateWithDuration:0.4 animations:^{
+						    		self.blurView.alpha = 0;
+						    	}];
+						    	self.blurView = nil;
+						   	}];
 
-							    [alert addAction:okButton];
+						    [alert addAction:okButton];
 
-								[controller presentViewController:alert animated:YES completion:nil];   
-					        }
+							[controller presentViewController:alert animated:YES completion:nil];   
+				        }
 
-					  		if (success) {
-					  			// %orig();
-							} else {
-					    		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
-								NSString *title = @"ShieldXI";
-								NSString *message = [NSString stringWithFormat:@"You are not the device owner"];
-								
-								UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
-							    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
-							    	// Extra Stuff?
-							    	[self.rootController popRecursivelyToRootController];
-							   	}];
-							    [alert addAction:okButton];
+				  		if (success) {
+				  			[UIView animateWithDuration:0.4 animations:^{
+				  				self.blurView.alpha = 0;
+				  			}];
+				  			self.blurView = nil;
+				  			// %orig();
+						} else {
+				    		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+							NSString *title = @"ShieldXI";
+							NSString *message = [NSString stringWithFormat:@"You are not the device owner"];
+							
+							UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+						    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+						    	// Extra Stuff?
+						    	[UIView animateWithDuration:0.4 animations:^{
+						    		self.blurView.alpha = 0;
+						    	}];
+						    	self.blurView = nil;
+						    	[self.rootController popRecursivelyToRootController];
+						   	}];
+						    [alert addAction:okButton];
 
-								[controller presentViewController:alert animated:YES completion:nil];   
-							}
-						});
-					}];
+							[controller presentViewController:alert animated:YES completion:nil];   
+						}
+					});
+				}];
 
-			   } else {
-			    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
-				NSString *title = @"ShieldXI";
-				NSString *message = [NSString stringWithFormat:@"Your device cannot authenticate using TouchID."];
-				UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
-			    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
-			    	// Extra Stuff?
-			    	[self.rootController popRecursivelyToRootController];
-			   	}];
-			    [alert addAction:okButton];
-				[controller presentViewController:alert animated:YES completion:nil];   
-			}
-	} else {
+		   } else {
+		    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
 			NSString *title = @"ShieldXI";
-			NSString *message = [NSString stringWithFormat:@"Sorry, but Touch ID nor FaceID are available on your device. DM us on @useignition as we would like to know how you got this running on your device!"];
+			NSString *message = [NSString stringWithFormat:@"Your device cannot authenticate using TouchID."];
 			UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
-			UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
-		        // %orig;
-		        [self.rootController popRecursivelyToRootController];
-			}];
+		    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+		    	// Extra Stuff?
+		    	[UIView animateWithDuration:0.4 animations:^{
+		    		self.blurView.alpha = 0;
+		    	}];
+		    	self.blurView = nil;
+		    	[self.rootController popRecursivelyToRootController];
+		   	}];
 		    [alert addAction:okButton];
 			[controller presentViewController:alert animated:YES completion:nil];   
-			AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
-			
-			// [self.rootController popRecursivelyToRootController];
+		}
+	} else {
+		NSString *title = @"ShieldXI";
+		NSString *message = [NSString stringWithFormat:@"Sorry, but Touch ID nor FaceID are available on your device. DM us on @useignition as we would like to know how you got this running on your device!"];
+		UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+		UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+	        // %orig;
+	        [UIView animateWithDuration:0.4 animations:^{
+	        	self.blurView.alpha = 0;
+	        }];
+	        self.blurView = nil;
+	        [self.rootController popRecursivelyToRootController];
+		}];
+	    [alert addAction:okButton];
+		[controller presentViewController:alert animated:YES completion:nil];   
+		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+		
+		// [self.rootController popRecursivelyToRootController];
 	}
 }
 

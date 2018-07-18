@@ -1,5 +1,5 @@
 Package: fun.ignition.shieldxi
-Name: Shield XI
+Name: ShieldXI
 Depends: mobilesubstrate, preferenceloader, com.spark.libsparkapplist, ws.hbang.common (>= 1.11)
 Version: 1.0.1
 Architecture: iphoneos-arm

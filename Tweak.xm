@@ -4,7 +4,8 @@
 #import <UIKit/UIKit.h>
 #include <dlfcn.h>
 #import <SpringBoard/SpringBoard.h>
-#import<SpringBoard/SBApplicationController.h>
+#import <SpringBoard/SBApplicationController.h>
+#import <SpringBoard/SBApplication.h>
 #import <objc/runtime.h>
 #import <AudioToolbox/AudioServices.h>
 #import <LocalAuthentication/LocalAuthentication.h>
@@ -27,11 +28,15 @@
 -(id)applicationBundleID;
 @end
 
-@interface SBApplication : NSObject
-- (id)bundleIdentifier;
-- (id)initWithBundleIdentifier:(id)arg1 webClip:(id)arg2 path:(id)arg3 bundle:(id)arg4 infoDictionary:(id)arg5 isSystemApplication:(_Bool)arg6 signerIdentity:(id)arg7 provisioningProfileValidated:(_Bool)arg8 entitlements:(id)arg9;
-- (id)displayName;
+@interface SBFolderIcon : NSObject
+-(void)launchFromLocation:(long long)arg1 context:(id)arg2 activationSettings:(id)arg3 actions:(id)arg4;
 @end
+
+// @interface SBApplication : NSObject
+// - (id)bundleIdentifier;
+// - (id)initWithBundleIdentifier:(id)arg1 webClip:(id)arg2 path:(id)arg3 bundle:(id)arg4 infoDictionary:(id)arg5 isSystemApplication:(_Bool)arg6 signerIdentity:(id)arg7 provisioningProfileValidated:(_Bool)arg8 entitlements:(id)arg9;
+// - (id)displayName;
+// @end
 
 @interface CAFilter : NSObject
 +(instancetype)filterWithName:(NSString *)name;
@@ -239,7 +244,11 @@ static NSString* dismissedApp;
 static NSMutableDictionary* prefs;
 static NSMutableArray* openApps;
 static BOOL enabled;
+static BOOL folders;
 static BOOL intruderKey;
+static BOOL hasCustomMessage;
+static NSString *reason;
+static NSString *customMessage;
 
 void dismissToApp() {
 	NSLog(@"ShieldXI Tweak::dissmissToApp()");
@@ -302,6 +311,24 @@ void loadPreferences() {
 		intruderKey = YES;
 	}
 
+	if (prefs[@"folders"] && ![prefs[@"folders"] boolValue]) {
+		folders = NO;
+	} else {
+		folders = YES;
+	}
+
+	if (prefs[@"hasCustomMessage"] && ![prefs[@"hasCustomMessage"] boolValue]) {
+		hasCustomMessage = NO;
+	} else {
+		hasCustomMessage = YES;
+	}
+
+	if (![prefs[@"customMessage"] isEqual: @""]) {
+		customMessage = prefs[@"customMessage"];
+	} else {
+		customMessage = @"Are you the device owner?";
+	}
+
 
 	NSLog(@"setting for enabled:%d", enabled);
 }
@@ -318,12 +345,130 @@ BOOL isTouchIDAvailable() {
     return YES;
 }
 
+%hook SBFolderIcon
+	-(void)launchFromLocation:(long long)arg1 context:(id)arg2 activationSettings:(id)arg3 actions:(id)arg4 {
+		if (folders) {
+			UIViewController * controller = [[UIApplication sharedApplication] keyWindow].rootViewController;
+			while (controller.presentedViewController) {
+			    controller = controller.presentedViewController;
+			}
+			if (isTouchIDAvailable()) {
+				LAContext *context = [[LAContext alloc] init];
+				context.localizedFallbackTitle = @"Greasy Fingers?\nEnter Password.";
+
+				if (hasCustomMessage) {
+					reason = customMessage;
+				} else {
+					reason = @"Are you the device owner?";
+				}
+
+				reason = @"Are you the device owner?";
+
+				NSError *error = nil;
+				if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
+				    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:reason reply:^(BOOL success, NSError *error) {
+			            	dispatch_async(dispatch_get_main_queue(), ^{
+						      	if (error) {
+						      		if (intruderKey) {
+						      			if (![[NSFileManager defaultManager] fileExistsAtPath:@"/var/mobile/ShieldXI"]) {
+						      			    mkdir("/var/mobile/ShieldXI", 0777);
+						      			}
+						      			NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+						      			[formatter setDateFormat:@"dd.MM.YY:HH.mm.ss"];
+						      			takepicture(true, (char*)[[NSString stringWithFormat:@"/var/mobile/ShieldXI/%@.png", [formatter stringFromDate:[NSDate date]]] UTF8String]);
+						      		}
+						      		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+									NSString *title = @"ShieldXI";
+									NSString *message = [NSString stringWithFormat:@"There was a problem verifying your identity."];
+									
+									UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+								    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+								    	// Extra Stuff?
+								   	}];
+
+								    [alert addAction:okButton];
+
+									[controller presentViewController:alert animated:YES completion:nil];   
+						        }
+
+						  		if (success) {
+						  			%orig();
+								} else {
+									if (intruderKey) {
+										if (![[NSFileManager defaultManager] fileExistsAtPath:@"/var/mobile/ShieldXI"]) {
+										    mkdir("/var/mobile/ShieldXI", 0777);
+										}
+										NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+										[formatter setDateFormat:@"dd.MM.YY:HH.mm.ss"];
+										takepicture(true, (char*)[[NSString stringWithFormat:@"/var/mobile/ShieldXI/%@.png", [formatter stringFromDate:[NSDate date]]] UTF8String]);
+									}
+						    		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+									NSString *title = @"ShieldXI";
+									NSString *message = [NSString stringWithFormat:@"You are not the device owner"];
+									
+									UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+								    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+								    	// Extra Stuff?
+								   	}];
+								    [alert addAction:okButton];
+
+									[controller presentViewController:alert animated:YES completion:nil];   
+								}
+							});
+						}];
+
+				   } else {
+				    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+					NSString *title = @"ShieldXI";
+					NSString *message = [NSString stringWithFormat:@"Your device cannot authenticate using TouchID."];
+					UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+				    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+				    	// Extra Stuff?
+				   	}];
+				    [alert addAction:okButton];
+					[controller presentViewController:alert animated:YES completion:nil];   
+				}
+			} else {
+					NSString *title = @"ShieldXI";
+					NSString *message = [NSString stringWithFormat:@"Sorry, but Touch ID nor FaceID are available on your device right now. Please lock and unlock your device using your passcode."];
+					UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+					UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+				        // %orig;
+					}];
+				    [alert addAction:okButton];
+					[controller presentViewController:alert animated:YES completion:nil];   
+			}
+		} else {
+			%orig;	
+		}
+	}
+%end
+
 %hook SBApplicationIcon
 - (id)initWithApplication:(id)arg1 {
 	self = %orig;
 	return self;
 }
 %end
+
+// %hook SBFluidSwitcherItemContainer
+
+// 	- (void)layoutSubviews {
+// 		%orig;
+// 		UILabel *firstIconTitle = MSHookIvar<UILabel *>(self, "_firstIconTitle");
+// 		[firstIconTitle addObserver:self forKeyPath:@"text" options:NSKeyValueObservingOptionNew context:nil];
+// 	}
+
+// 	-(void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context{
+
+// 	    if ([keyPath isEqualToString:@"text"]) {
+
+// 	        NSLog(@"Textfield changed - MAKE CHANGES HERE");
+// 	    }
+
+// 	}
+
+// %end
 
 %hook SBAppSwitcherController
 - (id)init {
@@ -339,11 +484,19 @@ BOOL isTouchIDAvailable() {
 		}
 		if (isTouchIDAvailable()) {
 			LAContext *context = [[LAContext alloc] init];
-			context.localizedFallbackTitle = @"Greasy Fingers? Enter Password.";
+			context.localizedFallbackTitle = @"Greasy Fingers?\nEnter Password.";
+
+			if (hasCustomMessage) {
+				reason = customMessage;
+			} else {
+				reason = @"Are you the device owner?";
+			}
+
+			reason = @"Are you the device owner?";
 
 			NSError *error = nil;
 			if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
-			    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:@"Are you the device owner?" reply:^(BOOL success, NSError *error) {
+			    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:reason reply:^(BOOL success, NSError *error) {
 		            	dispatch_async(dispatch_get_main_queue(), ^{
 					      	if (error) {
 					      		if (intruderKey) {
@@ -354,6 +507,9 @@ BOOL isTouchIDAvailable() {
 					      			[formatter setDateFormat:@"dd.MM.YY:HH.mm.ss"];
 					      			takepicture(true, (char*)[[NSString stringWithFormat:@"/var/mobile/ShieldXI/%@.png", [formatter stringFromDate:[NSDate date]]] UTF8String]);
 					      		}
+
+
+
 					      		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
 								NSString *title = @"ShieldXI";
 								NSString *message = [NSString stringWithFormat:@"There was a problem verifying your identity."];
@@ -480,9 +636,17 @@ BOOL isTouchIDAvailable() {
 				LAContext *context = [[LAContext alloc] init];
 				context.localizedFallbackTitle = @"Greasy Fingers? Enter Password.";
 
+				if (hasCustomMessage) {
+					reason = customMessage;
+				} else {
+					reason = @"Are you the device owner?";
+				}
+
+				reason = @"Are you the device owner?";
+
 				NSError *error = nil;
 				if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
-				    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:@"Are you the device owner?" reply:^(BOOL success, NSError *error) {
+				    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:reason reply:^(BOOL success, NSError *error) {
 			            	dispatch_async(dispatch_get_main_queue(), ^{
 						      	if (error) {
 						      		if (intruderKey) {
