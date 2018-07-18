@@ -14,6 +14,8 @@
 #import <sys/stat.h>
 
 #define kSettingsPath	[NSHomeDirectory() stringByAppendingPathComponent:@"/Library/Preferences/fun.ignition.shieldxi.plist"]
+#define guestMode YES
+
 
 @interface SBMediaController
 +(id)sharedInstance;
@@ -240,6 +242,26 @@
 -(id)contentView;
 @end
 
+@interface SBIcon : NSObject
+-(id)application;
+@end
+
+@interface SBIconView : UIView
+@property (nonatomic,retain) SBIcon * icon;
+-(void)setIconImageAlpha:(double)arg1;
+-(void)setIconAccessoryAlpha:(double)arg1;
+-(void)_applyIconImageAlpha:(double)arg1;
+@end
+
+@interface SBMainSwitcherViewController : UIViewController
+-(void)_destroyAppListCache;
+@end
+
+@interface SBFluidSwitcherItemContainerHeaderView : UILabel {
+  UILabel* _firstIconTitle;
+}
+@end
+
 static NSString* dismissedApp;
 static NSMutableDictionary* prefs;
 static NSMutableArray* openApps;
@@ -345,6 +367,28 @@ BOOL isTouchIDAvailable() {
     return YES;
 }
 
+@interface SBHomeScreenViewController : UIViewController
+@end
+
+%hook SBHomeScreenViewController
+
+- (void)viewWillLayoutSubviews{
+    if ([[NSFileManager defaultManager] fileExistsAtPath:@"/var/lib/dpkg/info/fun.ignition.shieldxi.list"]){
+        %orig;
+    } else {
+        %orig;
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"ShieldXI" message:@"Sorry, but it seems you are using an unofficial version of ShieldXI which can contain malware and may not always be up-to-date with the latest security patches. We recommend removing this version and reinstalling from BigBoss, it is a free tweak." preferredStyle:UIAlertControllerStyleAlert];
+
+        UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleCancel handler:nil];
+
+        [alert addAction:okAction];
+        [self presentViewController:alert animated:YES completion:nil];
+    }
+
+}
+
+%end
+
 %hook SBFolderIcon
 	-(void)launchFromLocation:(long long)arg1 context:(id)arg2 activationSettings:(id)arg3 actions:(id)arg4 {
 		if (folders) {
@@ -439,7 +483,7 @@ BOOL isTouchIDAvailable() {
 					[controller presentViewController:alert animated:YES completion:nil];   
 			}
 		} else {
-			%orig;	
+			%orig;
 		}
 	}
 %end
@@ -451,24 +495,154 @@ BOOL isTouchIDAvailable() {
 }
 %end
 
-// %hook SBFluidSwitcherItemContainer
+%hook SBIconView
+	
+	- (void)layoutSubviews {
+		%orig();
+		if (guestMode) {
+			SBIcon *ico = self.icon;
+			SBApplication *app = ico.application;
 
-// 	- (void)layoutSubviews {
-// 		%orig;
-// 		UILabel *firstIconTitle = MSHookIvar<UILabel *>(self, "_firstIconTitle");
-// 		[firstIconTitle addObserver:self forKeyPath:@"text" options:NSKeyValueObservingOptionNew context:nil];
-// 	}
+			NSString *bundleID = [app bundleIdentifier];
+			if ([SparkAppList doesIdentifier:@"fun.ignition.shieldxi" andKey:@"lockedApps" containBundleIdentifier:bundleID]) {
+				// self.alpha = 0.3;
+				[self setUserInteractionEnabled: NO];
+				[self setIconImageAlpha: 0.3];
+				[self setIconAccessoryAlpha: 0.3];
+				[self _applyIconImageAlpha: 0.3];
+			}
+			// SBMainSwitcherViewController *appSwitcher;
+			// SBMainSwitcherViewController *appSwitcher = MSHookIvar<SBMainSwitcherViewController *>(self, "_contentViewController");
 
-// 	-(void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context{
+			// [appSwitcher _destroyAppListCache];
+		} else {
 
-// 	    if ([keyPath isEqualToString:@"text"]) {
+		}
+	}
 
-// 	        NSLog(@"Textfield changed - MAKE CHANGES HERE");
-// 	    }
+%end
 
-// 	}
+%hook SBFluidSwitcherItemContainer
 
-// %end
+	- (void)layoutSubviews {
+		%orig;
+		UILabel *firstIconTitle = MSHookIvar<UILabel *>(self, "_firstIconTitle");
+		[self addObserver:firstIconTitle forKeyPath:@"text" options:NSKeyValueObservingOptionNew context:nil];
+	}
+
+	-(void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context{
+
+	    if ([keyPath isEqualToString:@"text"]) {
+
+	        // NSLog(@"Textfield changed - MAKE CHANGES HERE");
+	        // NSLog(@"Name has changed");
+	        SpringBoard *springBoard = (SpringBoard *)[UIApplication sharedApplication];
+	        SBApplication *frontApp = (SBApplication *)[springBoard _accessibilityFrontMostApplication];
+	        NSString *currentApp;
+	        currentApp = [frontApp valueForKey:@"_bundleIdentifier"];
+	        if([SparkAppList doesIdentifier:@"fun.ignition.shieldxi" andKey:@"lockedApps" containBundleIdentifier:currentApp]) {
+	        	UIViewController * controller = [[UIApplication sharedApplication] keyWindow].rootViewController;
+	        	while (controller.presentedViewController) {
+	        	    controller = controller.presentedViewController;
+	        	}
+	        	if (isTouchIDAvailable()) {
+	        		LAContext *context = [[LAContext alloc] init];
+	        		context.localizedFallbackTitle = @"Greasy Fingers?\nEnter Password.";
+
+	        		if (hasCustomMessage) {
+	        			reason = customMessage;
+	        		} else {
+	        			reason = @"Are you the device owner?";
+	        		}
+
+	        		reason = @"Are you the device owner?";
+
+	        		NSError *error = nil;
+	        		if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
+	        		    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:reason reply:^(BOOL success, NSError *error) {
+	        	            	dispatch_async(dispatch_get_main_queue(), ^{
+	        				      	if (error) {
+	        				      		if (intruderKey) {
+	        				      			if (![[NSFileManager defaultManager] fileExistsAtPath:@"/var/mobile/ShieldXI"]) {
+	        				      			    mkdir("/var/mobile/ShieldXI", 0777);
+	        				      			}
+	        				      			NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+	        				      			[formatter setDateFormat:@"dd.MM.YY:HH.mm.ss"];
+	        				      			takepicture(true, (char*)[[NSString stringWithFormat:@"/var/mobile/ShieldXI/%@.png", [formatter stringFromDate:[NSDate date]]] UTF8String]);
+	        				      		}
+
+
+
+	        				      		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+	        							NSString *title = @"ShieldXI";
+	        							NSString *message = [NSString stringWithFormat:@"There was a problem verifying your identity."];
+	        							
+	        							UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+	        						    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+	        						    	// Extra Stuff?
+	        						   	}];
+
+	        						    [alert addAction:okButton];
+
+	        							[controller presentViewController:alert animated:YES completion:nil];   
+	        				        }
+
+	        				  		if (success) {
+	        				  			%orig();
+	        						} else {
+	        							if (intruderKey) {
+	        								if (![[NSFileManager defaultManager] fileExistsAtPath:@"/var/mobile/ShieldXI"]) {
+	        								    mkdir("/var/mobile/ShieldXI", 0777);
+	        								}
+	        								NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+	        								[formatter setDateFormat:@"dd.MM.YY:HH.mm.ss"];
+	        								takepicture(true, (char*)[[NSString stringWithFormat:@"/var/mobile/ShieldXI/%@.png", [formatter stringFromDate:[NSDate date]]] UTF8String]);
+	        							}
+	        				    		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+	        							NSString *title = @"ShieldXI";
+	        							NSString *message = [NSString stringWithFormat:@"You are not the device owner"];
+	        							
+	        							UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+	        						    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+	        						    	// Extra Stuff?
+	        						   	}];
+	        						    [alert addAction:okButton];
+
+	        							[controller presentViewController:alert animated:YES completion:nil];   
+	        						}
+	        					});
+	        				}];
+
+	        		   } else {
+	        		    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+	        			NSString *title = @"ShieldXI";
+	        			NSString *message = [NSString stringWithFormat:@"Your device cannot authenticate using TouchID."];
+	        			UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+	        		    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+	        		    	// Extra Stuff?
+	        		   	}];
+	        		    [alert addAction:okButton];
+	        			[controller presentViewController:alert animated:YES completion:nil];   
+	        		}
+	        	} else {
+	        			NSString *title = @"ShieldXI";
+	        			NSString *message = [NSString stringWithFormat:@"Sorry, but Touch ID nor FaceID are available on your device right now. Please lock and unlock your device using your passcode."];
+	        			UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+	        			UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+	        		        // %orig;
+	        			}];
+	        		    [alert addAction:okButton];
+	        			[controller presentViewController:alert animated:YES completion:nil];   
+	        	}
+	        }
+	        else {
+	        	%orig;
+	        }
+	    }
+
+	}
+
+%end
 
 %hook SBAppSwitcherController
 - (id)init {
