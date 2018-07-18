@@ -4,8 +4,9 @@ BUNDLE_NAME = ShieldXIPrefs
 ShieldXIPrefs_FILES = SXIRootListController.m
 ShieldXIPrefs_INSTALL_PATH = /Library/PreferenceBundles
 ShieldXIPrefs_FRAMEWORKS = UIKit LocalAuthentication
-ShieldXIPrefs_PRIVATE_FRAMEWORKS = Preferences CoreGraphics ManagedConfiguration AudioToolBox BiometricKit
+ShieldXIPrefs_PRIVATE_FRAMEWORKS = Preferences CoreGraphics ManagedConfiguration AudioToolbox BiometricKit
 ShieldXIPrefs_LIBRARIES = sparkapplist
+ShieldXIPrefs_EXTRA_FRAMEWORKS = Cephei CepheiPrefs
 
 include $(THEOS_MAKE_PATH)/bundle.mk
 

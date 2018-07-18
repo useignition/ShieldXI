@@ -6,7 +6,7 @@
 	<string>ShieldXI</string>
 	<key>items</key>
 	<array>
-		<dict>
+		<!-- <dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>headerCellClass</key>
@@ -15,16 +15,57 @@
 			<string>header</string>
 			<key>key</key>
 			<string>header</string>
-		</dict>
-		<!-- <dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
 		</dict> -->
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
+			<key>headerCellClass</key>
+			<string>HBPackageNameHeaderCell</string>
+			<!-- <key>icon</key> -->
+			<!-- <string>ShieldXI@2x.png</string> -->
+			<key>packageIdentifier</key>
+			<string>fun.ignition.shieldxi</string>
+			<key>hasGradient</key>
+			<true/>
+			<key>backgroundGradientColors</key>
+			<array>
+				<!-- <string>#736CED</string>
+				<string>#736CED</string> -->
+				<string>#44475a</string>
+				<string>#44475a</string>
+			</array>
+			<key>titleColor</key>
+			<string>#ffffff</string>
+			<key>subtitleColor</key>
+			<string>#ffffff</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>fun.ignition.shieldxi</string>
+			<key>PostNotification</key>
+			<string>fun.ignition.shieldxi/settingschanged</string>
+			<key>key</key>
+			<string>darkMode</string>
+			<key>label</key>
+			<string>Dark Mode</string>
+			<key>set</key>
+			<string>setDarkModeSwitch:specifier:</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>Title</key>
+			<string>Shield XI</string>
 			<key>footerText</key>
-			<string>Respring required to enable/disable. Other settings take effect immediately.</string>
+			<string>Whilst Shield XI is disabled the below settings will have no effect.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -43,75 +84,181 @@
 			<string>setEnabledSwitch:specifier:</string>
 		</dict>
 		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
-		</dict>
-		<dict>
 	        <key>cell</key>
 	        <string>PSLinkListCell</string>
 	        <key>label</key>
 	        <string>Locked Apps</string>
+	        <key>DefaultValue</key>
+	        <string>0 apps</string>
 	        <key>action</key>
 	        <string>selectLockedApps</string>
 	    </dict>
 	    <dict>
 	    	<key>cell</key>
 	    	<string>PSGroupCell</string>
+	    	<key>Title</key>
+	    	<string>Intruder Photo</string>
+	    	<key>footerText</key>
+	    	<string>Intruder Photo will silently take a photo the person is trying to get into your apps.</string>
+	    </dict>
+	    <dict>
+	    	<key>cell</key>
+	    	<string>PSSwitchCell</string>
+	    	<key>default</key>
+	    	<true/>
+	    	<key>defaults</key>
+	    	<string>fun.ignition.shieldxi</string>
+	    	<key>PostNotification</key>
+	    	<string>fun.ignition.shieldxi/settingschanged</string>
+	    	<key>key</key>
+	    	<string>intruderKey</string>
+	    	<key>label</key>
+	    	<string>Intruder Photo</string>
+	    	<key>set</key>
+	    	<string>setIntruderSwitch:specifier:</string>
+	    </dict>
+	    <dict>
+	        <key>cell</key>
+	        <string>PSLinkListCell</string>
+	        <key>label</key>
+	        <string>Intruders</string>
+	        <key>DefaultValue</key>
+	        <string>0 photos</string>
+	        <key>action</key>
+	        <string>viewIntruders</string>
+	    </dict>
+	    <dict>
+	    	<key>cell</key>
+	    	<string>PSGroupCell</string>
+	    	<key>Title</key>
+	    	<string>Guest Mode</string>
+	    	<key>footerText</key>
+	    	<string>Guest Mode will lock certain apps from being opened at all until a recognised face or fingerprint has been given.</string>
+	    </dict>
+	    <dict>
+	    	<key>cell</key>
+	    	<string>PSSwitchCell</string>
+	    	<key>default</key>
+	    	<false/>
+	    	<key>defaults</key>
+	    	<string>fun.ignition.shieldxi</string>
+	    	<key>PostNotification</key>
+	    	<string>fun.ignition.shieldxi/settingschanged</string>
+	    	<key>key</key>
+	    	<string>guestMode</string>
+	    	<key>label</key>
+	    	<string>Guest Mode</string>
+	    	<key>subtitle</key>
+	    	<string>Enter guest mode on unrecognised access attempt.</string>
+	    	<key>set</key>
+	    	<string>setEnabledSwitch:specifier:</string>
+	    </dict>
+    	<dict>
+            <key>cell</key>
+            <string>PSLinkListCell</string>
+            <key>label</key>
+            <string>Guest Mode Apps</string>
+            <key>DefaultValue</key>
+            <string>0 apps</string>
+            <key>action</key>
+            <string>selectLockedApps</string>
+        </dict>
+        <dict>
+	    	<key>cell</key>
+	    	<string>PSGroupCell</string>
+	    	<key>Title</key>
+	    	<string>Access Message</string>
+	    	<key>footerText</key>
+	    	<string>Set a custom access message on the Touch ID/Face ID popup.</string>
+	    </dict>
+	    <dict>
+	    	<key>cell</key>
+	    	<string>PSSwitchCell</string>
+	    	<key>default</key>
+	    	<false/>
+	    	<key>defaults</key>
+	    	<string>fun.ignition.shieldxi</string>
+	    	<key>PostNotification</key>
+	    	<string>fun.ignition.shieldxi/settingschanged</string>
+	    	<key>key</key>
+	    	<string>customMessage</string>
+	    	<key>label</key>
+	    	<string>Access Message</string>
+	    	<key>subtitle</key>
+	    	<string>Set a custom access message on the Touch ID/Face ID popup.</string>
+	    	<key>set</key>
+	    	<string>setEnabledSwitch:specifier:</string>
+	    </dict>
+    	<dict>
+			<key>action</key>
+			<string>setCustomMessage:</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Set Message</string>
+		</dict>
+	    <dict>
+	    	<key>cell</key>
+	    	<string>PSGroupCell</string>
+	    </dict>
+	    <dict>
+	    	<key>cellClass</key>
+	    	<string>HBTwitterCell</string>
+	    	<key>label</key>
+	    	<string>Ignition</string>
+	    	<key>user</key>
+	    	<string>useignition</string>
+	    </dict>
+	    <dict>
+	    	<key>cellClass</key>
+	    	<string>HBLinkTableCell</string>
+	    	<key>url</key>
+	    	<string>https://patreon.com/useignition</string>
+	    	<key>label</key>
+	    	<string>Donate</string>
+	    	<key>subtitle</key>
+	    	<string>Help us to help you by sharing the love.</string>
 	    </dict>
 		<dict>
-			<key>id</key>
-			<string>openTwitter</string>
-			<key>cell</key>
-			<string>PSButtonCell</string>
-			<key>detail</key>
-			<string>PSDetailController</string>
-			<key>defaults</key>
-			<string>fun.ignition.shieldxi</string>
-			<key>PostNotification</key>
-			<string>fun.ignition.shieldxi/settingschanged</string>
-			<key>key</key>
-			<string>openTwitter</string>
-			<key>action</key>
-			<string>openTwitter</string>
+			<key>cellClass</key>
+			<string>HBLinkTableCell</string>
+			<key>url</key>
+			<string>https://ignition.fun</string>
 			<key>label</key>
-			<string>@useignition on Twitter</string>
+			<string>Our App</string>
+			<key>subtitle</key>
+			<string>#1 3rd Party AppStore</string>
 		</dict>
 		<dict>
-			<key>id</key>
-			<string>visitIgnitionFun</string>
-			<key>cell</key>
-			<string>PSButtonCell</string>
-			<key>detail</key>
-			<string>PSDetailController</string>
-			<key>defaults</key>
-			<string>fun.ignition.shieldxi</string>
-			<key>PostNotification</key>
-			<string>fun.ignition.shieldxi/settingschanged</string>
-			<key>key</key>
-			<string>visitIgnitionFun</string>
-			<key>action</key>
-			<string>visitIgnitionFun</string>
+			<key>cellClass</key>
+			<string>HBLinkTableCell</string>
+			<key>url</key>
+			<string>https://github.com/useignition/ShieldXI</string>
 			<key>label</key>
-			<string>Visit ignition.fun</string>
-		</dict>
-		<dict>
-			<key>id</key>
-			<string>openSourceCode</string>
-			<key>cell</key>
-			<string>PSButtonCell</string>
-			<key>detail</key>
-			<string>PSDetailController</string>
-			<key>defaults</key>
-			<string>fun.ignition.shieldxi</string>
-			<key>PostNotification</key>
-			<string>fun.ignition.shieldxi/settingschanged</string>
-			<key>key</key>
-			<string>openSourceCode</string>
-			<key>action</key>
-			<string>openSourceCode</string>
-			<key>label</key>
+			<string>GitHub</string>
+			<key>subtitle</key>
 			<string>Source Code</string>
 		</dict>
+		<!-- <dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+		</dict> -->
+		<!-- <dict>
+			<key>cellClass</key>
+			<string>HBPackageTableCell</string>
+			<key>label</key>
+			<string>SafeModeSublime</string>
+			<key>packageIdentifier</key>
+			<string>fun.ignition.safemodesublime</string>
+			<key>packageRepository</key>
+			<string>https://ignition.fun/repo/</string>
+			<key>subtitleText</key>
+			<string>Beautify the Electra Safe Mode</string>
+		</dict> -->
+		<!-- <dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+		</dict> -->
 	</array>
 </dict>
 </plist>

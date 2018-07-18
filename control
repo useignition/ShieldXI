@@ -1,7 +1,7 @@
 Package: fun.ignition.shieldxi
 Name: Shield XI
-Depends: mobilesubstrate, preferenceloader, com.spark.libsparkapplist
-Version: 1.0.0
+Depends: mobilesubstrate, preferenceloader, com.spark.libsparkapplist, ws.hbang.common (>= 1.11)
+Version: 1.0.1
 Architecture: iphoneos-arm
 Description: A free and open-source BioProtect X alternative.
 Maintainer: Ignition

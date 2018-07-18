@@ -9,16 +9,8 @@
 #import <AudioToolbox/AudioServices.h>
 #import <LocalAuthentication/LocalAuthentication.h>
 #import "SparkAppList.h"
-#include "capture.h"
-#import <sys/stat.h>
 
 #define kSettingsPath	[NSHomeDirectory() stringByAppendingPathComponent:@"/Library/Preferences/fun.ignition.shieldxi.plist"]
-
-@interface SBMediaController
-+(id)sharedInstance;
--(BOOL)isRingerMuted;
--(void)setRingerMuted:(BOOL)muted;
-@end
 
 @interface SBApplicationIcon : NSObject
 - (void)launchFromLocation:(int)location;
@@ -239,34 +231,11 @@ static NSString* dismissedApp;
 static NSMutableDictionary* prefs;
 static NSMutableArray* openApps;
 static BOOL enabled;
-static BOOL intruderKey;
 
 void dismissToApp() {
 	NSLog(@"ShieldXI Tweak::dissmissToApp()");
 	[[UIApplication sharedApplication] launchApplicationWithIdentifier:dismissedApp suspended:NO];
 	
-}
-
-
-//credits to Lucas Jackson aka neoneggplant https://github.com/neoneggplant/camshot/blob/master/main.mm && Jakeashacks https://github.com/jakeajames/CatchaThief/blob/master/Tweak.xm
-void takepicture(BOOL isfront,char* filename) {
-
-    BOOL isMuted = [[%c(SBMediaController) sharedInstance] isRingerMuted];
-    if (!isMuted)  [[%c(SBMediaController) sharedInstance] setRingerMuted:true];
-
-    capture *cam = [[capture alloc] init];
-    [cam setupCaptureSession:isfront];
-    [cam setfilename:[NSString stringWithFormat:@"%s" , filename]];
-    [NSThread sleepForTimeInterval:0.2];
-
-    __block BOOL done = NO;
-    [cam captureWithBlock:^(UIImage *image)
-     {done = YES;}];
-    while (!done)
-        [[NSRunLoop mainRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.1]];
-    [cam release];
-
-    if (!isMuted)  [[%c(SBMediaController) sharedInstance] setRingerMuted:false];
 }
 
 void loadPreferences() {
@@ -295,14 +264,6 @@ void loadPreferences() {
 	} else {
 		enabled = YES;
 	}
-
-	if (prefs[@"intruderKey"] && ![prefs[@"intruderKey"] boolValue]) {
-		intruderKey = NO;
-	} else {
-		intruderKey = YES;
-	}
-
-
 	NSLog(@"setting for enabled:%d", enabled);
 }
 
@@ -327,101 +288,116 @@ BOOL isTouchIDAvailable() {
 
 %hook SBAppSwitcherController
 - (id)init {
+	// DebugLog0;
+	// appSlider = %orig;
 	return %orig;
 }
 - (void)switcherScroller:(id)scroller1 itemTapped:(SBDisplayLayout*)tapped {
 	NSLog(@"itemTapped = %@", tapped);
-	SBDisplayItem* item = [tapped.displayItems objectAtIndex:0];
-	if ([SparkAppList doesIdentifier:@"fun.ignition.shieldxi" andKey:@"lockedApps" containBundleIdentifier:item.displayIdentifier]) {
-		UIViewController * controller = [[UIApplication sharedApplication] keyWindow].rootViewController;
-		while (controller.presentedViewController) {
-		    controller = controller.presentedViewController;
-		}
-		if (isTouchIDAvailable()) {
-			LAContext *context = [[LAContext alloc] init];
-			context.localizedFallbackTitle = @"Greasy Fingers? Enter Password.";
-
-			NSError *error = nil;
-			if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
-			    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:@"Are you the device owner?" reply:^(BOOL success, NSError *error) {
-		            	dispatch_async(dispatch_get_main_queue(), ^{
-					      	if (error) {
-					      		if (intruderKey) {
-					      			if (![[NSFileManager defaultManager] fileExistsAtPath:@"/var/mobile/ShieldXI"]) {
-					      			    mkdir("/var/mobile/ShieldXI", 0777);
-					      			}
-					      			NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
-					      			[formatter setDateFormat:@"dd.MM.YY:HH.mm.ss"];
-					      			takepicture(true, (char*)[[NSString stringWithFormat:@"/var/mobile/ShieldXI/%@.png", [formatter stringFromDate:[NSDate date]]] UTF8String]);
-					      		}
-					      		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
-								NSString *title = @"ShieldXI";
-								NSString *message = [NSString stringWithFormat:@"There was a problem verifying your identity."];
-								
-								UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
-							    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
-							    	// Extra Stuff?
-							   	}];
-
-							    [alert addAction:okButton];
-
-								[controller presentViewController:alert animated:YES completion:nil];   
-					        }
-
-					  		if (success) {
-					  			%orig();
-							} else {
-								if (intruderKey) {
-									if (![[NSFileManager defaultManager] fileExistsAtPath:@"/var/mobile/ShieldXI"]) {
-									    mkdir("/var/mobile/ShieldXI", 0777);
-									}
-									NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
-									[formatter setDateFormat:@"dd.MM.YY:HH.mm.ss"];
-									takepicture(true, (char*)[[NSString stringWithFormat:@"/var/mobile/ShieldXI/%@.png", [formatter stringFromDate:[NSDate date]]] UTF8String]);
-								}
-					    		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
-								NSString *title = @"ShieldXI";
-								NSString *message = [NSString stringWithFormat:@"You are not the device owner"];
-								
-								UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
-							    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
-							    	// Extra Stuff?
-							   	}];
-							    [alert addAction:okButton];
-
-								[controller presentViewController:alert animated:YES completion:nil];   
-							}
-						});
-					}];
-
-			   } else {
-			    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
-				NSString *title = @"ShieldXI";
-				NSString *message = [NSString stringWithFormat:@"Your device cannot authenticate using TouchID."];
-				UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
-			    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
-			    	// Extra Stuff?
-			   	}];
-			    [alert addAction:okButton];
-				[controller presentViewController:alert animated:YES completion:nil];   
+	
+	// scroller = scroller1;
+	//indexTapped = tapped;
+	//if (isUnlocking) {
+		// isToMulti = YES;
+		SBDisplayItem* item = [tapped.displayItems objectAtIndex:0];
+		// appToOpen = item.displayIdentifier;
+		// NSLog(@"appToOpen: %@", appToOpen);
+		
+		// NSString* appDisplayName = SBSCopyLocalizedApplicationNameForDisplayIdentifier(appToOpen);
+		if ([SparkAppList doesIdentifier:@"fun.ignition.shieldxi" andKey:@"lockedApps" containBundleIdentifier:item.displayIdentifier]) {
+			//NSLog(@"[Asos] appDisplayName: %@", appDisplayName);
+			//SBApplication* appWithDisplay = [[SBApplication alloc] initWithBundleIdentifier:appToOpen];
+			// dismissedApp = appToOpen;
+			// currentlyOpening = appToOpen;
+			// [handler showPasscodeViewWithBundleID:appToOpen andDisplayName:appDisplayName];
+			UIViewController * controller = [[UIApplication sharedApplication] keyWindow].rootViewController;
+			while (controller.presentedViewController) {
+			    controller = controller.presentedViewController;
 			}
-		} else {
-				NSString *title = @"ShieldXI";
-				NSString *message = [NSString stringWithFormat:@"Sorry, but Touch ID nor FaceID are available on your device right now. Please lock and unlock your device using your passcode."];
-				UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
-				UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
-			        // %orig;
+			// dismissedApp = bundleID;
+			// NSLog(@"%@", dispName);
+			if (isTouchIDAvailable()) {
+				LAContext *context = [[LAContext alloc] init];
+				context.localizedFallbackTitle = @"";
+
+				NSError *error = nil;
+				if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
+				    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:@"Are you the device owner?" reply:^(BOOL success, NSError *error) {
+			            	dispatch_async(dispatch_get_main_queue(), ^{
+						      	if (error) {
+						      		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+									NSString *title = @"ShieldXI";
+									NSString *message = [NSString stringWithFormat:@"There was a problem verifying your identity."];
+									
+									UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+								    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+								    	// Extra Stuff?
+								   	}];
+
+								    [alert addAction:okButton];
+
+									[controller presentViewController:alert animated:YES completion:nil];   
+						        }
+
+						  		if (success) {
+						  			%orig();
+								} else {
+						    		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+									NSString *title = @"ShieldXI";
+									NSString *message = [NSString stringWithFormat:@"You are not the device owner"];
+									
+									UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+								    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+								    	// Extra Stuff?
+								   	}];
+								    [alert addAction:okButton];
+
+									[controller presentViewController:alert animated:YES completion:nil];   
+								}
+							});
+						}];
+
+				   } else {
+				    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+					NSString *title = @"ShieldXI";
+					NSString *message = [NSString stringWithFormat:@"Your device cannot authenticate using TouchID."];
+					UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+				    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+				    	// Extra Stuff?
+				   	}];
+				    [alert addAction:okButton];
+					[controller presentViewController:alert animated:YES completion:nil];   
+				}
+			} else {
+					NSString *title = @"ShieldXI";
+					NSString *message = [NSString stringWithFormat:@"Sorry, but Touch ID nor FaceID are available on your device. DM us on @useignition as we would like to know how you got this running on your device!"];
+					UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+					UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+				        %orig;
+					}];
+				    [alert addAction:okButton];
+					[controller presentViewController:alert animated:YES completion:nil];   
+			}
+			/*
+			[appSlider animateDismissalToDisplayIdentifier:@"com.apple.springboard" withCompletion:^{
+			[[%c(SBUIController) sharedInstance] getRidOfAppSwitcher];
 				}];
-			    [alert addAction:okButton];
-				[controller presentViewController:alert animated:YES completion:nil];   
+			UIAlertView* lockedAlert = [[UIAlertView alloc] initWithTitle:@"Asos" message:@"This app is locked. Please open it from the homescreen to 	input your passcode." delegate:self cancelButtonTitle:@"Ok" otherButtonTitles:nil];
+			[lockedAlert show];
+			return;
+			*/
 		}
-	}
-	else {
-		%orig;
-	}
+		else {
+			//NSLog(@"[Asos] %@ is not a locked app.", appDisplayName);
+			%orig;
+		}
+	//}
+	//else %orig;
 }
 - (id)_beginAppListAccess { 
+	//DebugLog0;
 	openApps = %orig;
+	//NSLog(@"[Asos] openApps is %@", openApps);
 	return openApps;
 }
 -(id)_flattenedArrayOfDisplayItemsFromDisplayLayouts:(id)arg1 {
@@ -440,6 +416,9 @@ BOOL isTouchIDAvailable() {
 %hook SBAppSwitcherSnapshotView
 + (id)appSwitcherSnapshotViewForDisplayItem:(SBDisplayItem*)application orientation:(int)orientation loadAsync:(BOOL)async withQueue:(id)queue statusBarCache:(id)cache {
 	if([SparkAppList doesIdentifier:@"fun.ignition.shieldxi" andKey:@"lockedApps" containBundleIdentifier:application.displayIdentifier]){
+		//UIImage* padlockImage = [UIImage imageWithContentsOfFile:@"/Library/Application Support/Asos/padlock.png"];
+		//UIImageView* padlockImageView = [[UIImageView alloc] initWithImage:padlockImage];
+
 		NSLog(@"Found an app which needs to be blurred");
 
 		UIImageView *snapshot = (UIImageView *)%orig();
@@ -478,21 +457,13 @@ BOOL isTouchIDAvailable() {
 			NSLog(@"%@", dispName);
 			if (isTouchIDAvailable()) {
 				LAContext *context = [[LAContext alloc] init];
-				context.localizedFallbackTitle = @"Greasy Fingers? Enter Password.";
+				context.localizedFallbackTitle = @"";
 
 				NSError *error = nil;
 				if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
 				    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:@"Are you the device owner?" reply:^(BOOL success, NSError *error) {
 			            	dispatch_async(dispatch_get_main_queue(), ^{
 						      	if (error) {
-						      		if (intruderKey) {
-						      			if (![[NSFileManager defaultManager] fileExistsAtPath:@"/var/mobile/ShieldXI"]) {
-						      			    mkdir("/var/mobile/ShieldXI", 0777);
-						      			}
-						      			NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
-						      			[formatter setDateFormat:@"dd.MM.YY:HH.mm.ss"];
-						      			takepicture(true, (char*)[[NSString stringWithFormat:@"/var/mobile/ShieldXI/%@.png", [formatter stringFromDate:[NSDate date]]] UTF8String]);
-						      		}
 						      		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
 									NSString *title = @"ShieldXI";
 									NSString *message = [NSString stringWithFormat:@"There was a problem verifying your identity."];
@@ -510,31 +481,23 @@ BOOL isTouchIDAvailable() {
 						  		if (success) {
 						  			%orig();
 								} else {
-									if (intruderKey) {
-										if (![[NSFileManager defaultManager] fileExistsAtPath:@"/var/mobile/ShieldXI"]) {
-										    mkdir("/var/mobile/ShieldXI", 0777);
-										}
-										NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
-										[formatter setDateFormat:@"dd.MM.YY:HH.mm.ss"];
-										takepicture(true, (char*)[[NSString stringWithFormat:@"/var/mobile/ShieldXI/%@.png", [formatter stringFromDate:[NSDate date]]] UTF8String]);
-									}
 						    		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
-									// NSString *title = @"ShieldXI";
-									// NSString *message = [NSString stringWithFormat:@"You are not the device owner"];
+									NSString *title = @"ShieldXI";
+									NSString *message = [NSString stringWithFormat:@"You are not the device owner"];
 									
-									// UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
-								 //    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
-								 //    	// Extra Stuff?
-								 //   	}];
-								 //    [alert addAction:okButton];
+									UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+								    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+								    	// Extra Stuff?
+								   	}];
+								    [alert addAction:okButton];
 
-									// [controller presentViewController:alert animated:YES completion:nil];   
+									[controller presentViewController:alert animated:YES completion:nil];   
 								}
 							});
 						}];
 
 				   } else {
-				    // AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+				    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
 					NSString *title = @"ShieldXI";
 					NSString *message = [NSString stringWithFormat:@"Your device cannot authenticate using TouchID."];
 					UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
@@ -546,10 +509,10 @@ BOOL isTouchIDAvailable() {
 				}
 			} else {
 					NSString *title = @"ShieldXI";
-					NSString *message = [NSString stringWithFormat:@"Sorry, but Touch ID nor FaceID are available on your device right now. Please lock and unlock your device using your passcode."];
+					NSString *message = [NSString stringWithFormat:@"Sorry, but Touch ID nor FaceID are available on your device. DM us on @useignition as we would like to know how you got this running on your device!"];
 					UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
 					UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
-				        // %orig;
+				        %orig;
 					}];
 				    [alert addAction:okButton];
 					[controller presentViewController:alert animated:YES completion:nil];   

@@ -24,10 +24,15 @@
 #import <Preferences/PSListController.h>
 #import <Preferences/PSSpecifier.h>
 #import <Preferences/PSTableCell.h>
+#import <CepheiPrefs/HBRootListController.h>
+#import <CepheiPrefs/HBAppearanceSettings.h>
+#import <Cephei/HBPreferences.h>
 
 @interface ShieldXIListController : PSListController
 // - (void)applicationEnteredForeground:(id)something;
 - (void)setEnabledSwitch:(id)value specifier:(PSSpecifier *)specifier;
+- (void)setDarkModeSwitch:(id)value specifier:(PSSpecifier *)specifier;
+- (void)setIntruderSwitch:(id)value specifier:(PSSpecifier *)specifier;
 // - (void)setUseRealPasscodeSwitch:(id)value specifier:(PSSpecifier *)specifier;
 // - (void)setTimedPasscodeSwitch:(id)value specifier:(PSSpecifier *)specifier;
 // - (void)hidePasscodeAlert;
@@ -58,9 +63,9 @@
 // @property (nonatomic, strong, retain) UITapGestureRecognizer *tapRecognizer;
 @end
 
-@interface ShieldXICustomCell : PSTableCell
-// @property (nonatomic, retain, strong) UIView* contentView;
-@end
+// @interface ShieldXICustomCell : PSTableCell
+// // @property (nonatomic, retain, strong) UIView* contentView;
+// @end
 
 @interface Applications : PSListController
 @end
@@ -70,6 +75,9 @@
 #define kSettingsPath	[NSHomeDirectory() stringByAppendingPathComponent:@"/Library/Preferences/fun.ignition.shieldxi.plist"]
 #define kSettingsIconPath	@"/Library/PreferenceBundles/ShieldXIPrefs.bundle/ShieldXI@2x.png"
 #define kSettingsLogoPath	@"/Library/PreferenceBundles/ShieldXIPrefs.bundle/banner@2x.png"
+
+static NSMutableDictionary* prefs;
+static BOOL darkMode;
 
 __strong ShieldXIListController *controller;
 
@@ -133,6 +141,35 @@ int osVersion(){
     return _osVersionValue;
 }
 
+void loadPreferences() {
+//static void PreferencesChangedCallback(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+	//[//preferences release];
+	CFStringRef appID = CFSTR("fun.ignition.shieldxi");
+	CFArrayRef keyList = CFPreferencesCopyKeyList(appID, kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
+	if (!keyList) {
+		NSLog(@"[ShieldXI] There's been an error getting the key list!");
+		return;
+	}
+	prefs = (NSMutableDictionary *)CFBridgingRelease(CFPreferencesCopyMultiple(keyList, appID, kCFPreferencesCurrentUser, kCFPreferencesAnyHost));
+	if (!prefs) {
+		NSLog(@"[ShieldXI] There's been an error getting the preferences dictionary!");
+	}
+	
+	NSLog(@"Tweak::loadPreferences()");
+
+	NSLog(@"[ShieldXI] settings updated, prefs is %@", prefs);
+
+	//prefs = [NSMutableDictionary dictionaryWithContentsOfFile:kSettingsPath] ?: [NSMutableDictionary dictionary];
+	NSLog(@"read prefs from disk: %@", prefs);
+	
+	if (prefs[@"darkMode"] && ![prefs[@"darkMode"] boolValue]) {
+		darkMode = NO;
+	} else {
+		darkMode = YES;
+	}
+	NSLog(@"setting for darkMode: %d", darkMode);
+}
+
 // [UIColor colorWithRed:0.45 green:0.42 blue:0.93 alpha:1.0]
 @implementation ShieldXIListController
 
@@ -184,30 +221,12 @@ int osVersion(){
 		NSLog(@"[ShieldXI] IF self is %@", self);
 
 		controller = self;
-		// _randNum = 0;
-		// _tapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tap:)];
-
-		// add a Respring button to the navbar
-		_respringButton = [[UIBarButtonItem alloc] 	initWithTitle:@"Respring"
-								  					style:UIBarButtonItemStyleDone 
-								  					target:self
-								  					action:@selector(respring)];		
-		_respringButton.tintColor = [UIColor colorWithRed:212/255.0 green:86/255.0 blue:217/255.0 alpha:1];
+		_respringButton = [[UIBarButtonItem alloc] initWithTitle:@"" style:UIBarButtonItemStylePlain target:self action:@selector(respring)];
 		
 		[self.navigationItem setRightBarButtonItem:_respringButton];
 	}
 	return self;
 }
-// - (id)specifiers {
-// 	if (_specifiers == nil) {
-// 		_specifiers = [self loadSpecifiersFromPlistName:@"Root" target:self];
-// 		NSLog(@"read specifiers from plist: %@", _specifiers);
-		
-// 		// self.timeInputSpecifier = [self specifierForID:@"timeInterval"];
-// 		// self.passcodeInputSpecifier = [self specifierForID:@"passcode"];
-// 	}
-// 	return _specifiers;
-// }
 
 - (NSArray *)specifiers {
 	if (!_specifiers) {
@@ -223,6 +242,9 @@ int osVersion(){
 	UIImage *icon = [[UIImage alloc] initWithContentsOfFile:kSettingsIconPath];
 	if (icon) {
 		UIImageView *iconView = [[UIImageView alloc] initWithImage:icon];
+		iconView.layer.cornerRadius = iconView.frame.size.height /2;
+		iconView.layer.masksToBounds = YES;
+		iconView.layer.borderWidth = 0;
 		self.navigationItem.titleView = iconView;
 	}
 }
@@ -231,20 +253,47 @@ int osVersion(){
     return UIStatusBarStyleLightContent;
 }
 
-- (void)viewWillAppear {
-	[[UINavigationBar appearance] setTintColor:[UIColor whiteColor]]; // this will change the back button tint
-	[[UINavigationBar appearance] setBarTintColor:[UIColor colorWithRed:0.45 green:0.42 blue:0.93 alpha:1.0]];
+- (instancetype)init {
+	loadPreferences();
+	self = [super init];
+
+	if (self) {
+		if (darkMode) {
+			HBAppearanceSettings *appearanceSettings = [[HBAppearanceSettings alloc] init];
+			appearanceSettings.navigationBarTintColor = [UIColor whiteColor];
+			appearanceSettings.navigationBarTitleColor = [UIColor whiteColor];
+			appearanceSettings.statusBarTintColor = [UIColor whiteColor];
+			appearanceSettings.tableViewCellSeparatorColor = [UIColor colorWithRed:0.24 green:0.25 blue:0.32 alpha:1.0];
+			appearanceSettings.translucentNavigationBar = NO;
+			appearanceSettings.tintColor = [UIColor colorWithRed:0.38 green:0.45 blue:0.64 alpha:1.0];
+			appearanceSettings.navigationBarBackgroundColor = [UIColor colorWithRed:0.27 green:0.28 blue:0.35 alpha:1.0];
+			appearanceSettings.tableViewCellTextColor = [UIColor whiteColor];
+			appearanceSettings.tableViewCellBackgroundColor = [UIColor colorWithRed:0.27 green:0.28 blue:0.35 alpha:1.0];
+			appearanceSettings.tableViewCellSelectionColor = [UIColor colorWithRed:0.27 green:0.27 blue:0.35 alpha:1.0];
+			appearanceSettings.tableViewBackgroundColor = [UIColor colorWithRed:0.16 green:0.16 blue:0.21 alpha:1.0];
+			self.hb_appearanceSettings = appearanceSettings;
+		} else {
+			HBAppearanceSettings *appearanceSettings = [[HBAppearanceSettings alloc] init];
+			appearanceSettings.navigationBarBackgroundColor = [UIColor colorWithRed:0.45 green:0.42 blue:0.93 alpha:1.0];
+			appearanceSettings.navigationBarTintColor = [UIColor whiteColor];
+			appearanceSettings.navigationBarTitleColor = [UIColor whiteColor];
+			appearanceSettings.statusBarTintColor = [UIColor whiteColor];
+			appearanceSettings.tableViewCellSeparatorColor = [UIColor colorWithWhite:0 alpha:0];
+			appearanceSettings.translucentNavigationBar = NO;
+			appearanceSettings.tintColor = [UIColor colorWithRed:0.3f green:0.3f blue:0.3f alpha:1];
+			self.hb_appearanceSettings = appearanceSettings;
+		}
+	}
+
+	return self;
 }
 
-- (void)viewDidAppear {
-	[[UINavigationBar appearance] setTintColor:[UIColor whiteColor]]; // this will change the back button tint
-	[[UINavigationBar appearance] setBarTintColor:[UIColor colorWithRed:0.45 green:0.42 blue:0.93 alpha:1.0]];
+- (void)viewWillAppear {
+	[self.navigationController.navigationController.navigationBar setShadowImage: [UIImage new]];
 }
 
 - (void)viewDidLoad {
 	[super viewDidLoad];
-	[[UINavigationBar appearance] setTintColor:[UIColor whiteColor]]; // this will change the back button tint
-	[[UINavigationBar appearance] setBarTintColor:[UIColor colorWithRed:0.45 green:0.42 blue:0.93 alpha:1.0]];
 	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 	
 	[[SparkAppList alloc] getAppList: ^(NSArray *result) {
@@ -252,11 +301,12 @@ int osVersion(){
         [defaults synchronize];
     }];
 	NSDictionary *titleAttributes = @{NSForegroundColorAttributeName: [UIColor whiteColor]};
-	self.navigationController.navigationBar.barStyle = UIBarStyleBlack;
-	self.navigationController.navigationBar.translucent = YES;
-	self.navigationController.navigationBar.barTintColor = [UIColor colorWithRed:0.45 green:0.42 blue:0.93 alpha:1.0];
+	// self.navigationController.navigationBar.barStyle = UIBarStyleBlack;
+	// self.navigationController.navigationBar.translucent = YES;
+	// self.navigationController.navigationBar.barTintColor = [UIColor colorWithRed:0.45 green:0.42 blue:0.93 alpha:1.0];
 	// self.tool.barTintColor = [UIColor colorWithRed:0.45 green:0.42 blue:0.93 alpha:1.0];
 	// self.toolbar.barStyle = UIBarStyleBlack;
+	[self.navigationController.navigationController.navigationBar setShadowImage: [UIImage new]];
 	[self.navigationController.navigationBar setTitleTextAttributes:titleAttributes];
 
 	// if (@available(iOS 11.0, *)) {
@@ -279,10 +329,31 @@ int osVersion(){
 	self.respringButton.title = @"Respring";
 }
 
+- (void)setIntruderSwitch:(id)value specifier:(PSSpecifier *)specifier {
+	NSLog(@"setting: %@ for key: %@", value, [specifier propertyForKey:@"key"]);
+	
+	[self setPreferenceValue:value specifier:specifier];
+	[[NSUserDefaults standardUserDefaults] synchronize];
+	
+	// indicate that a Respring is required
+	self.respringButton.title = @"Respring";
+}
+
+- (void)setDarkModeSwitch:(id)value specifier:(PSSpecifier *)specifier {
+	NSLog(@"setting: %@ for key: %@", value, [specifier propertyForKey:@"key"]);
+	
+	[self setPreferenceValue:value specifier:specifier];
+	[[NSUserDefaults standardUserDefaults] synchronize];
+	
+	// indicate that a Respring is required
+	self.respringButton.title = @"Respring";
+	// [self init];
+}
+
 - (void)askForLogin {
 	if (isTouchIDAvailable()) {
 			LAContext *context = [[LAContext alloc] init];
-			context.localizedFallbackTitle = @"";
+			context.localizedFallbackTitle = @"Greasy Fingers? Enter Password.";
 
 			NSError *error = nil;
 			if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
@@ -363,56 +434,56 @@ int osVersion(){
 
 @end
 
-@implementation ShieldXICustomCell
-- (instancetype)initWithSpecifier:(PSSpecifier *)specifier {
-	self = [super initWithStyle:UITableViewCellStyleDefault
-				reuseIdentifier:@"ShieldXICustomCell"
-					  specifier:specifier];
-	if (self) {
-		[self setBackgroundColor:[UIColor colorWithRed:0.45 green:0.42 blue:0.93 alpha:1.0]];
-		// UIImage *logo = [[UIImage alloc] initWithContentsOfFile:kSettingsLogoPath];
-		// if (logo) {
-		// 	UIImageView *logoView = [[UIImageView alloc] initWithImage:logo];
-		// 	logoView.frame = CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, 175);
-		// 	[self addSubview:logoView];
-		// }
+// @implementation ShieldXICustomCell
+// - (instancetype)initWithSpecifier:(PSSpecifier *)specifier {
+// 	self = [super initWithStyle:UITableViewCellStyleDefault
+// 				reuseIdentifier:@"ShieldXICustomCell"
+// 					  specifier:specifier];
+// 	if (self) {
+// 		[self setBackgroundColor:[UIColor colorWithRed:0.45 green:0.42 blue:0.93 alpha:1.0]];
+// 		// UIImage *logo = [[UIImage alloc] initWithContentsOfFile:kSettingsLogoPath];
+// 		// if (logo) {
+// 		// 	UIImageView *logoView = [[UIImageView alloc] initWithImage:logo];
+// 		// 	logoView.frame = CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, 175);
+// 		// 	[self addSubview:logoView];
+// 		// }
 		
-		// UILabel *randomLabel = [[UILabel alloc] initWithFrame:self.contentView.frame];
-		// randomLabel.text = @"Thanks for choosing ShieldXI by Ignition";
-		// randomLabel.font = [UIFont systemFontOfSize:10];
-		// randomLabel.textColor = UIColor.whiteColor;
-		int width = self.contentView.bounds.size.width;
-		int height = self.contentView.bounds.size.height;
+// 		// UILabel *randomLabel = [[UILabel alloc] initWithFrame:self.contentView.frame];
+// 		// randomLabel.text = @"Thanks for choosing ShieldXI by Ignition";
+// 		// randomLabel.font = [UIFont systemFontOfSize:10];
+// 		// randomLabel.textColor = UIColor.whiteColor;
+// 		int width = self.contentView.bounds.size.width;
+// 		int height = self.contentView.bounds.size.height;
 
-		CGRect frame = CGRectMake(0, 45, width, height);
-		CGRect subtitleFrame = CGRectMake(0, 75, width, height);
+// 		CGRect frame = CGRectMake(0, 45, width, height);
+// 		CGRect subtitleFrame = CGRectMake(0, 75, width, height);
 
-		UILabel *tweakTitle = [[UILabel alloc] initWithFrame:frame];
-		[tweakTitle setNumberOfLines:1];
-		[tweakTitle setFont:[UIFont fontWithName:@"HelveticaNeue-UltraLight" size:48]];
-		[tweakTitle setText:@"ShieldXI"];
-		[tweakTitle setBackgroundColor:[UIColor clearColor]];
-		[tweakTitle setTextColor:[UIColor colorWithRed:255 green:255 blue:255 alpha:1]];
-		[tweakTitle setTextAlignment:NSTextAlignmentCenter];
-		tweakTitle.autoresizingMask = UIViewAutoresizingFlexibleWidth;
-		tweakTitle.contentMode = UIViewContentModeScaleToFill;
+// 		UILabel *tweakTitle = [[UILabel alloc] initWithFrame:frame];
+// 		[tweakTitle setNumberOfLines:1];
+// 		[tweakTitle setFont:[UIFont fontWithName:@"HelveticaNeue-UltraLight" size:48]];
+// 		[tweakTitle setText:@"ShieldXI"];
+// 		[tweakTitle setBackgroundColor:[UIColor clearColor]];
+// 		[tweakTitle setTextColor:[UIColor colorWithRed:255 green:255 blue:255 alpha:1]];
+// 		[tweakTitle setTextAlignment:NSTextAlignmentCenter];
+// 		tweakTitle.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+// 		tweakTitle.contentMode = UIViewContentModeScaleToFill;
 
-		UILabel *tweakSubtitle = [[UILabel alloc] initWithFrame:subtitleFrame];
-		[tweakSubtitle setNumberOfLines:1];
-		[tweakSubtitle setFont:[UIFont fontWithName:@"HelveticaNeue-Regular" size:18]];
-		[tweakSubtitle setText:@"By Ignition Development"];
-		[tweakSubtitle setBackgroundColor:[UIColor clearColor]];
-		[tweakSubtitle setTextColor:[UIColor colorWithRed:255 green:255 blue:255 alpha:1]];
-		[tweakSubtitle setTextAlignment:NSTextAlignmentCenter];
-		tweakSubtitle.autoresizingMask = UIViewAutoresizingFlexibleWidth;
-		tweakSubtitle.contentMode = UIViewContentModeScaleToFill;
+// 		UILabel *tweakSubtitle = [[UILabel alloc] initWithFrame:subtitleFrame];
+// 		[tweakSubtitle setNumberOfLines:1];
+// 		[tweakSubtitle setFont:[UIFont fontWithName:@"HelveticaNeue-Regular" size:18]];
+// 		[tweakSubtitle setText:@"By Ignition Development"];
+// 		[tweakSubtitle setBackgroundColor:[UIColor clearColor]];
+// 		[tweakSubtitle setTextColor:[UIColor colorWithRed:255 green:255 blue:255 alpha:1]];
+// 		[tweakSubtitle setTextAlignment:NSTextAlignmentCenter];
+// 		tweakSubtitle.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+// 		tweakSubtitle.contentMode = UIViewContentModeScaleToFill;
 
-		[self addSubview:tweakTitle];
-		[self addSubview:tweakSubtitle];
-	}
-	return self;
-}
-- (CGFloat)preferredHeightForWidth:(CGFloat)arg1 {
-	return 150.0f;
-}
-@end
+// 		[self addSubview:tweakTitle];
+// 		[self addSubview:tweakSubtitle];
+// 	}
+// 	return self;
+// }
+// - (CGFloat)preferredHeightForWidth:(CGFloat)arg1 {
+// 	return 150.0f;
+// }
+// @end
