@@ -362,8 +362,6 @@ BOOL isTouchIDAvailable() {
 					reason = @"Are you the device owner?";
 				}
 
-				reason = @"Are you the device owner?";
-
 				NSError *error = nil;
 				if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
 				    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:reason reply:^(BOOL success, NSError *error) {
