@@ -14,7 +14,7 @@
 #import <sys/stat.h>
 
 #define kSettingsPath	[NSHomeDirectory() stringByAppendingPathComponent:@"/Library/Preferences/fun.ignition.shieldxi.plist"]
-#define guestMode YES
+#define guestMode NO
 
 
 @interface SBMediaController
@@ -257,9 +257,95 @@
 -(void)_destroyAppListCache;
 @end
 
+@interface SBAppLayout : NSObject {
+	NSDictionary* _rolesToLayoutItemsMap;
+}
+
+@property (nonatomic,copy) NSDictionary * rolesToLayoutItemsMap;
+
+- (id)allitems;
+
+@end
+
 @interface SBFluidSwitcherItemContainerHeaderView : UILabel {
   UILabel* _firstIconTitle;
 }
+@property (nonatomic,retain) SBAppLayout * appLayout; 
+@end
+
+@interface SBFluidSwitcherItemContainer : UIView
+@end
+
+@protocol SBDashBoardPageViewControllerProtocol;
+
+@interface SBBiometricEventLogger : NSObject
+@end
+
+@interface SBLockScreenViewControllerBase : UIViewController
+- (BOOL)isPasscodeLockVisible;
+@end
+
+@interface SBLockScreenViewController : SBLockScreenViewControllerBase
+@end
+
+@interface SBLockScreenManager : NSObject
++ (id)sharedInstance;
+- (void)unlockUIFromSource:(int)arg1 withOptions:(id)arg2;
+- (void)_finishUIUnlockFromSource:(int)arg1 withOptions:(id)arg2;
+// - (void)_bioAuthenticated:(id)arg1;
+// - (void)_lockUI;
+// - (BOOL)attemptUnlockWithPasscode:(id)passcode;
+// @property(nonatomic, getter=isUIUnlocking) BOOL UIUnlocking;
+// @property(readonly) BOOL isWaitingToLockUI;
+@property(readonly) BOOL isUILocked;
+@property(readonly, nonatomic) SBLockScreenViewController *lockScreenViewController;
+@property(readonly) BOOL bioAuthenticatedWhileMenuButtonDown;
+@end
+
+@interface SBAssistantController : NSObject
++ (BOOL)isAssistantVisible;
+@end
+
+@interface SBDashBoardViewBase : UIView
+@end
+
+@interface SBDashBoardMainPageView : SBDashBoardViewBase
+@end
+
+@interface SBDashBoardPageViewBase : SBDashBoardViewBase
+@property(nonatomic, assign) UIViewController<SBDashBoardPageViewControllerProtocol> *pageViewController; // @synthesize pageViewController=_pageViewController;
+@end
+
+@interface SBDashBoardTodayPageView : SBDashBoardPageViewBase
+@end
+
+@interface SBDashBoardMainPageContentViewController : UIViewController
+@property(readonly, nonatomic, getter=isShowingMediaControls) _Bool showingMediaControls;
+@end
+
+@interface SBDashBoardMainPageViewController : UIViewController
+@property(readonly, nonatomic) SBDashBoardMainPageContentViewController *contentViewController;
+@end
+
+@interface UIView (Private)
+- (void)_setDrawsAsBackdropOverlayWithBlendMode:(long long)arg1;
+- (void)_setDrawsAsBackdropOverlay:(_Bool)arg1;
+@end
+
+@interface UIImage (Private)
+- (UIImage *)_flatImageWithColor:(UIColor *)color;
+@end
+
+@interface SBDashBoardViewController : UIViewController
+@end
+
+@interface SBDashBoardMesaUnlockBehavior : NSObject
+- (void)_handleMesaFailure;
+- (void)biometricEventMonitor:(id)arg1 handleBiometricEvent:(unsigned long long)arg2;
+@end
+
+@interface SBUICallToActionLabel : UIView
+- (void)setText:(NSString *)arg1;
 @end
 
 static NSString* dismissedApp;
@@ -522,12 +608,244 @@ BOOL isTouchIDAvailable() {
 
 %end
 
-%hook SBFluidSwitcherItemContainer
+%hook SBDashBoardPageViewBase
+- (void)didMoveToWindow {
+	%orig;
+
+	if (![self.pageViewController isKindOfClass:[%c(SBDashBoardMainPageViewController) class]]) {
+		return;
+	}
+
+	UIImageView *profilePic = [[UIImageView alloc] initWithFrame:CGRectMake(self.window.frame.origin.x / 2, self.window.frame.size.height - 100, 60, 60)];
+	// myImage.image = [UIImage imageNamed:@"return_journey_denoter.png"];	
+	[profilePic setImage:[UIImage imageWithContentsOfFile:@"/Library/Application Support/ShieldXI/Icon.png"]];
+	[self addSubview:profilePic];
+
+	// main page is leaving it's window, do some clean up
+	// if (!self.window) {
+	// 	[profilePic removeFromSuperview];
+	// 	// fingerglyph = nil;
+
+	// 	// revert CustomCover override once we've been removed from the window
+	// 	// if (overrideIsForCustomCover) {
+	// 	// 	setPrimaryColorOverride(nil);
+	// 	// 	setSecondaryColorOverride(nil);
+	// 	// }
+
+	// 	return;
+	// }
+
+	// if (!enabled) {
+	// 	NSLog(@"LockGlyphX is disabled");
+	// 	return;
+	// }
+
+	// authenticated = NO;
+ //    canStartFingerDownAnimation = YES;
+
+	// if (fingerglyph) {
+	// 	DebugLog(@"WARNING: fingerglyph shouldn't exist right now!");
+	// 	return;
+	// }
+
+	// // create the glyph
+	// fingerglyph = [[%c(PKGlyphView) alloc] initWithStyle:0];
+	// fingerglyph.delegate = (id<PKGlyphViewDelegate>)self;
+	// fingerglyph.primaryColor = activePrimaryColor();
+	// fingerglyph.secondaryColor = activeSecondaryColor();
+
+	// // check for theme image
+	// if (themeAssets && ([[NSFileManager defaultManager] fileExistsAtPath:[themeAssets pathForResource:@"IdleImage" ofType:@"png"]] || [[NSFileManager defaultManager] fileExistsAtPath:[themeAssets pathForResource:@"IdleImage@2x" ofType:@"png"]])) {
+	// 	UIImage *customImage = [UIImage imageWithContentsOfFile:[themeAssets pathForResource:@"IdleImage" ofType:@"png"]];
+
+	// 	// apply color override if required
+	// 	if (applyColorToCustomGlyphs && fingerglyph.secondaryColor) {
+	// 		customImage = [customImage _flatImageWithColor:fingerglyph.secondaryColor];
+	// 	}
+
+	// 	// resize the custom glyph to the size of the image?
+	// 	// CGRect frame = fingerglyph.frame;
+	// 	// frame.size = customImage.size;
+	// 	// fingerglyph.frame = frame;
+
+	// 	[fingerglyph setCustomImage:customImage.CGImage withAlignmentEdgeInsets:UIEdgeInsetsZero];
+	// 	[fingerglyph setState:kGlyphStateCustom animated:NO completionHandler:nil];
+	// 	usingDefaultGlyph = NO;
+	// } else {
+	// 	[fingerglyph setState:getIdleGlyphState() animated:NO completionHandler:nil];
+	// 	usingDefaultGlyph = YES;
+	// }
+
+	// // position glyph
+	// [fingerglyph updatePositionWithOrientation:[[UIApplication sharedApplication] statusBarOrientation]];
+
+	// // add shine animation
+	// if (useShine) {
+	// 	[fingerglyph addShineAnimation];
+	// } else {
+	// 	[fingerglyph removeShineAnimation];
+	// }
+
+	// // add tap recognizer to glyph
+	// UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(lockGlyphTapHandler:)];
+ //  tap.delegate = (id <UIGestureRecognizerDelegate>)self;
+	// [fingerglyph addGestureRecognizer:tap];
+
+ //  // add long press recognizer to glyph
+	// UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(lockGlyphLongPressHandler:)];
+ //  longPress.delegate = (id <UIGestureRecognizerDelegate>)self;
+	// [fingerglyph addGestureRecognizer:longPress];
+ //  [tap requireGestureRecognizerToFail:longPress];
+
+	// [self addSubview:fingerglyph];
+
+	// // handle when music controls are showing
+	// SBDashBoardMainPageViewController *pvc = (SBDashBoardMainPageViewController *)self.pageViewController;
+	// if (pvc.contentViewController.showingMediaControls) {
+	// 	if (hideWhenMusicControlsAreVisible) {
+	// 		fingerglyph.hidden = YES;
+	// 	} else if (moveBackWhenMusicControlsAreVisible) {
+	// 		[self sendSubviewToBack:fingerglyph];
+	// 	}
+	// }
+
+	// // listen for notifications from ColorFlow/CustomCover
+	// if (!isObservingForCCCF) {
+	// 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(LG_RevertUI:) name:CFRevert object:nil];
+	// 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(LG_ColorizeUI:) name:CFColor object:nil];
+	// 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(LG_RevertUI:) name:CCRevert object:nil];
+	// 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(LG_ColorizeUI:) name:CCColor object:nil];
+	// 	isObservingForCCCF = YES;
+	// }
+}
+
+%end
+
+@interface SBSwitcherSnapshotImageView : UIView {
+
+	UIImageView* _imageView;
+	UIView* _scalingView;
+	double _cornerRadius;
+	unsigned long long _maskedCorners;
+	BOOL _usesNonuniformScaling;
+	BOOL _hasOpaqueContents;
+	long long _orientationForClassicLayout;
+
+}
+
+@property (nonatomic,retain) UIImage * image; 
+@property (assign,nonatomic) double cornerRadius; 
+@property (assign,nonatomic) unsigned long long maskedCorners; 
+@property (assign,nonatomic) BOOL usesNonuniformScaling;                         //@synthesize usesNonuniformScaling=_usesNonuniformScaling - In the implementation block
+@property (assign,nonatomic) BOOL hasOpaqueContents;                             //@synthesize hasOpaqueContents=_hasOpaqueContents - In the implementation block
+@property (assign,nonatomic) long long orientationForClassicLayout;              //@synthesize orientationForClassicLayout=_orientationForClassicLayout - In the implementation block
+-(CGAffineTransform)scalingTransform;
+-(BOOL)usesNonuniformScaling;
+-(double)_transformHorizontalScale;
+-(double)_transformVerticalScale;
+-(double)_transformScale;
+-(BOOL)_isUsingExternalClassicLayout;
+-(void)setHasOpaqueContents:(BOOL)arg1 ;
+-(void)setOrientationForClassicLayout:(long long)arg1 ;
+-(void)setUsesNonuniformScaling:(BOOL)arg1 ;
+-(BOOL)hasOpaqueContents;
+-(long long)orientationForClassicLayout;
+-(void)setCornerRadius:(double)arg1 ;
+-(double)cornerRadius;
+-(void)layoutSubviews;
+-(void)setImage:(UIImage *)arg1 ;
+-(id)initWithImage:(id)arg1 ;
+-(UIImage *)image;
+-(void)setMaskedCorners:(unsigned long long)arg1 ;
+-(unsigned long long)maskedCorners;
+-(void)_updateCornerRadius;
+@end
+
+@interface SBAppSwitcherReusableSnapshotView {
+	SBSwitcherSnapshotImageView* _firstImageView;
+	SBAppLayout* _appLayout;
+}
+@property (nonatomic,retain) SBAppLayout * appLayout;
+- (UIImage *)blurredImageWithImage:(UIImage *)sourceImage;
+@end
+
+@interface SBReusableSnapshotItemContainer
+@property (nonatomic,retain) SBAppLayout * appLayout; 
+	-(void)setSnapshotView:(SBAppSwitcherReusableSnapshotView *)arg1;
+@end
+
+%hook SBReusableSnapshotItemContainer
+
+	-(void)setSnapshotView:(SBAppSwitcherReusableSnapshotView *)arg1 {
+		%orig();
+		SBAppLayout *aLayout = self.appLayout;
+		NSDictionary *layoutMap = aLayout.rolesToLayoutItemsMap;
+		SBDisplayItem *dispItem = [layoutMap objectForKey:@(1)];
+		NSString *bundleID = dispItem.displayIdentifier;
+		if([SparkAppList doesIdentifier:@"fun.ignition.shieldxi" andKey:@"lockedApps" containBundleIdentifier:bundleID]) {
+			UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
+		    UIVisualEffectView *blurEffectView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+		    //always fill the view
+		    blurEffectView.frame = self.view.bounds;
+		    blurEffectView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+
+		    [self.view addSubview:blurEffectView];
+			// SBSwitcherSnapshotImageView *firstImage = MSHookIvar<SBSwitcherSnapshotImageView *>(self, "_firstImageView");
+			// SBSwitcherSnapshotImageView *image = MSHookIvar<UIImageView *>(self, "_firstImageView");
+			// UIImageView *image = firstImage.imageView;
+			// UIImageView *snapshot = firstImage.image;
+			// CAFilter *filter = [CAFilter filterWithName:@"gaussianBlur"];
+			// [filter setValue:@10 forKey:@"inputRadius"];
+			// snapshot.layer.filters = [NSArray arrayWithObject:filter];
+			// [firstImage setImage:[self blurredImageWithImage:firstImage.image]];
+			// firstImage.image = [self blurredImageWithImage:firstImage.image];
+		}
+	}
+
+	- (UIImage *)blurredImageWithImage:(UIImage *)sourceImage {
+
+	    //  Create our blurred image
+	    CIContext *context = [CIContext contextWithOptions:nil];
+	    CIImage *inputImage = [CIImage imageWithCGImage:sourceImage.CGImage];
+
+	    //  Setting up Gaussian Blur
+	    CIFilter *filter = [CIFilter filterWithName:@"CIGaussianBlur"];
+	    [filter setValue:inputImage forKey:kCIInputImageKey];
+	    [filter setValue:[NSNumber numberWithFloat:15.0f] forKey:@"inputRadius"];
+	    CIImage *result = [filter valueForKey:kCIOutputImageKey];
+
+	    /*  CIGaussianBlur has a tendency to shrink the image a little, this ensures it matches 
+	     *  up exactly to the bounds of our original image */
+	    CGImageRef cgImage = [context createCGImage:result fromRect:[inputImage extent]];
+
+	    UIImage *retVal = [UIImage imageWithCGImage:cgImage];
+
+	    if (cgImage) {
+	        CGImageRelease(cgImage);
+	    }
+
+	    return retVal;
+	}
+
+%end
+
+%hook SBFluidSwitcherItemContainerHeaderView
 
 	- (void)layoutSubviews {
-		%orig;
+		// UILabel *firstIconTitle = MSHookIvar<UILabel *>(self, "_firstIconTitle");
 		UILabel *firstIconTitle = MSHookIvar<UILabel *>(self, "_firstIconTitle");
+		NSLog(@"TESTING %@",firstIconTitle);
+		// firstIconTitle.text = @"LOCKED";
+		SBAppLayout *aLayout = self.appLayout;
+		NSDictionary *layoutMap = aLayout.rolesToLayoutItemsMap;
+		SBDisplayItem *dispItem = [layoutMap objectForKey:@(1)];
+		NSString *bundleID = dispItem.displayIdentifier;
+		if([SparkAppList doesIdentifier:@"fun.ignition.shieldxi" andKey:@"lockedApps" containBundleIdentifier:bundleID]) {
+			firstIconTitle.text = @"ShieldXI";
+		}
+		NSLog(@"%@", firstIconTitle);
 		[self addObserver:firstIconTitle forKeyPath:@"text" options:NSKeyValueObservingOptionNew context:nil];
+		%orig();
 	}
 
 	-(void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context{
