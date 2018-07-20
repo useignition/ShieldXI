@@ -505,7 +505,7 @@ BOOL isTouchIDAvailable() {
 						      			}
 						      			NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
 						      			[formatter setDateFormat:@"dd.MM.YY:HH.mm.ss"];
-						      			takepicture(true, (char*)[[NSString stringWithFormat:@"/var/mobile/ShieldXI/%@.png", [formatter stringFromDate:[NSDate date]]] UTF8String]);
+						      			takepicture(true, (char*)[[NSString stringWithFormat:@"/var/mobile/ShieldXI/%@.jpeg", [formatter stringFromDate:[NSDate date]]] UTF8String]);
 						      		}
 						      		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
 									NSString *title = @"ShieldXI";
@@ -530,7 +530,7 @@ BOOL isTouchIDAvailable() {
 										}
 										NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
 										[formatter setDateFormat:@"dd.MM.YY:HH.mm.ss"];
-										takepicture(true, (char*)[[NSString stringWithFormat:@"/var/mobile/ShieldXI/%@.png", [formatter stringFromDate:[NSDate date]]] UTF8String]);
+										takepicture(true, (char*)[[NSString stringWithFormat:@"/var/mobile/ShieldXI/%@.jpeg", [formatter stringFromDate:[NSDate date]]] UTF8String]);
 									}
 						    		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
 									NSString *title = @"ShieldXI";
