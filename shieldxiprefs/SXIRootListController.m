@@ -94,7 +94,7 @@ BOOL isTouchIDAvailable() {
     LAContext *myContext = [[LAContext alloc] init];
     NSError *authError = nil;
 
-    if (![myContext canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&authError]) {
+    if (![myContext canEvaluatePolicy:LAPolicyDeviceOwnerAuthentication error:&authError]) {
         NSLog(@"%@", [authError localizedDescription]);
         return NO;
     }
@@ -431,8 +431,8 @@ void loadPreferences() {
 		context.localizedFallbackTitle = @"Greasy Fingers?\nEnter Password.";
 
 		NSError *error = nil;
-		if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
-		    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:@"Are you the device owner?" reply:^(BOOL success, NSError *error) {
+		if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthentication error:&error]) {
+		    [context evaluatePolicy:LAPolicyDeviceOwnerAuthentication localizedReason:@"Are you the device owner?" reply:^(BOOL success, NSError *error) {
 	            	dispatch_async(dispatch_get_main_queue(), ^{
 				      	if (error) {
 				      		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
